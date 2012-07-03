@@ -37,8 +37,8 @@
 #include "acl.h"
 #include "xip.h"
 
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <linux/types.h>
+#include <linux/socket.h>
 
 static void ext2_sync_super(struct super_block *sb,
 			    struct ext2_super_block *es, int wait);
