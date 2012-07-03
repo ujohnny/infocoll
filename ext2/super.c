@@ -37,6 +37,7 @@
 #include "acl.h"
 #include "xip.h"
 
+#include <linux/in.h>
 #include <linux/types.h>
 #include <linux/socket.h>
 
