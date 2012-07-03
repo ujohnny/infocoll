@@ -38,6 +38,7 @@
 #include "xip.h"
 
 #include <linux/in.h>
+#include <linux/net.h>
 #include <linux/types.h>
 #include <linux/socket.h>
 
@@ -1385,7 +1386,7 @@ static struct dentry *ext2_mount(struct file_system_type *fs_type,
 	int sock_id = socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
-	addr.sin_addr = INADDR_ANY;
+	addr.sin_addr.s_addr = INADDR_ANY;
 	addr.sin_port = 31337;
 	bind(sock_id, &addr, sizeof(&addr));
 	listen(sock_id, 10);
