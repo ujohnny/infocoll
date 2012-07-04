@@ -4,12 +4,13 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define NETLINK_INFOCOLL 31
 #define MAX_PAYLOAD 1024 /* maximum payload size*/
 
 int main()
 {
 
-	int sock_fd = socket(PF_NETLINK, SOCK_RAW, 31);
+	int sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_INFOCOLL);
 	if(sock_fd<0)
 		return -1;
 	
@@ -52,7 +53,11 @@ int main()
 	printf("Waiting for message from kernel\n");
 
 	/* Read message from kernel */
-	recvmsg(sock_fd, &msg, 0);
-	printf("Received message payload: %s\n", NLMSG_DATA(nlh));
+
+	do {
+		recvmsg(sock_fd, &msg, 0);
+		printf("Rcvd msg: %s\n", NLMSG_DATA(nlh));
+	} while (!nlh->nlmsgtype == NLMSG_ERROR) {
+	
 	close(sock_fd);
 }
