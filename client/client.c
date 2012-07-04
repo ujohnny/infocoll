@@ -11,9 +11,11 @@ int main()
 {
 
 	int sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_INFOCOLL);
-	if(sock_fd<0)
+	if(sock_fd<0) {
+		printf("device not mounted\n");
 		return -1;
-	
+	}
+
 	struct sockaddr_nl src_addr;
 	memset(&src_addr, 0, sizeof(src_addr));
 	src_addr.nl_family = AF_NETLINK;
