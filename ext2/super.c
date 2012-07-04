@@ -1418,7 +1418,7 @@ static struct dentry *ext2_mount(struct file_system_type *fs_type,
 	/*
 		SOCkEKTZ GO HERE!111
 	*/
-	nl_sk = netlink_kernel_create(&init_net, NETLINK_KOBJECT_UEVENT, 0, sometestfnc, NULL, THIS_MODULE);
+	nl_sk = netlink_kernel_create(&init_net, 31, 0, sometestfnc, NULL, THIS_MODULE);
 
 	if (!nl_sk) {
 		printk(KERN_ALERT "Error creating socket.\n");
