@@ -1424,6 +1424,17 @@ static struct dentry *ext2_mount(struct file_system_type *fs_type,
 
 static void ext2_unmount(struct super_block *sb)
 {
+	
+	char *msg = "Goodbye from kernel";
+	int msg_size = strlen(msg);
+	
+	struct sk_buff *skb_out = nlmsg_new(msg_size,0);
+
+	nlh = nlmsg_put(skb_out, 0, 0, NLMSG_ERROR, msg_size, 0);  
+	NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+	strncpy(nlmsg_data(nlh), msg, msg_size);
+	nlmsg_unicast(infocoll_data.socket, skb_out, pid);
+
 	netlink_kernel_release(infocoll_data.socket);
 	infocoll_data.pid = -1;
 	infocoll_data.socket = NULL;
