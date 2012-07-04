@@ -1377,24 +1377,17 @@ static int ext2_statfs (struct dentry * dentry, struct kstatfs * buf)
 }
 
 
-struct sock *nl_sk = NULL;
 static void sometestfnc(struct sk_buff *skb) {
-	struct nlmsghdr *nlh;
-	int pid;
-	struct sk_buff *skb_out;
-	int msg_size;
-	char *msg="Hello from kernel";
-	int res;
-
+	char *msg = "Hello from kernel";
+	int msg_size = strlen(msg);
+	
 	printk(KERN_INFO "Entering: %s\n", __FUNCTION__);
 
-	msg_size = strlen(msg);
-
-	nlh = (struct nlmsghdr*) skb->data;
+	struct nlmsghdr *nlh = (struct nlmsghdr*) skb->data;
 	printk(KERN_INFO "Netlink received msg payload: %s\n",(char*) nlmsg_data(nlh));
-	pid = nlh->nlmsg_pid; /*pid of sending process */
+	int pid = info_coll_data.pid = nlh->nlmsg_pid; /*pid of sending process */
 
-	skb_out = nlmsg_new(msg_size,0);
+	struct sk_buff *skb_out = nlmsg_new(msg_size,0);
 
 	if (!skb_out) {
 		printk(KERN_ERR "Failed to allocate new skb\n");
@@ -1405,7 +1398,7 @@ static void sometestfnc(struct sk_buff *skb) {
 	NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
 	strncpy(nlmsg_data(nlh), msg, msg_size);
 
-	res = nlmsg_unicast(nl_sk, skb_out, pid);
+	int res = nlmsg_unicast(info_coll_data.socket, skb_out, pid);
 
 	if (res < 0) {
 	    printk(KERN_INFO "Error while sending bak to user\n");
@@ -1418,15 +1411,23 @@ static struct dentry *ext2_mount(struct file_system_type *fs_type,
 	/*
 		SOCkEKTZ GO HERE!111
 	*/
-	nl_sk = netlink_kernel_create(&init_net, 31, 0, sometestfnc, NULL, THIS_MODULE);
+	info_coll_data.socket = netlink_kernel_create(&init_net, 31, 0, sometestfnc, NULL, THIS_MODULE);
 
-	if (!nl_sk) {
+	if (!info_coll_data.socket) {
 		printk(KERN_ALERT "Error creating socket.\n");
 	} else {
 		printk(KERN_INFO "Socket created successful.\n");
 	}
 
 	return mount_bdev(fs_type, flags, dev_name, data, ext2_fill_super);
+}
+
+static void ext2_unmount()
+{
+	netlink_kernel_release(info_coll_data.socket);
+	info_coll_data.pid = -1;
+	info_coll_data.socket = NULL;
+	kill_block_super();
 }
 
 #ifdef CONFIG_QUOTA
@@ -1541,7 +1542,7 @@ static struct file_system_type ext2_fs_type = {
 	.owner		= THIS_MODULE,
 	.name		= "ext2",
 	.mount		= ext2_mount,
-	.kill_sb	= kill_block_super,
+	.kill_sb	= ext2_unmount,
 	.fs_flags	= FS_REQUIRES_DEV,
 };
 
