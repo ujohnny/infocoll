@@ -1422,6 +1422,14 @@ static struct dentry *ext2_mount(struct file_system_type *fs_type,
 	return mount_bdev(fs_type, flags, dev_name, data, ext2_fill_super);
 }
 
+static void ext2_unmount()
+{
+	netlink_kernel_release(info_coll_data.socket);
+	info_coll_data.pid = -1;
+	info_coll_data.socket = NULL;
+	kill_block_super();
+}
+
 #ifdef CONFIG_QUOTA
 
 /* Read data from quotafile - avoid pagecache and such because we cannot afford
@@ -1534,7 +1542,7 @@ static struct file_system_type ext2_fs_type = {
 	.owner		= THIS_MODULE,
 	.name		= "ext2",
 	.mount		= ext2_mount,
-	.kill_sb	= kill_block_super,
+	.kill_sb	= ext2_unmount,
 	.fs_flags	= FS_REQUIRES_DEV,
 };
 
