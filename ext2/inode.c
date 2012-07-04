@@ -763,11 +763,31 @@ int ext2_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 
 static int ext2_writepage(struct page *page, struct writeback_control *wbc)
 {
+	char *msg = "Writepage from kernel";
+	int msg_size = strlen(msg);
+	
+	struct sk_buff *skb_out = nlmsg_new(msg_size,0);
+
+	struct nlmsghdr *nlh = nlmsg_put(skb_out, 0, 0, NLMSG_ERROR, msg_size, 0);  
+	NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+	strncpy(nlmsg_data(nlh), msg, msg_size);
+	nlmsg_unicast(infocoll_data.socket, skb_out, infocoll_data.pid);
+
 	return block_write_full_page(page, ext2_get_block, wbc);
 }
 
 static int ext2_readpage(struct file *file, struct page *page)
 {
+	char *msg = "Readpage from kernel";
+	int msg_size = strlen(msg);
+	
+	struct sk_buff *skb_out = nlmsg_new(msg_size,0);
+
+	struct nlmsghdr *nlh = nlmsg_put(skb_out, 0, 0, NLMSG_ERROR, msg_size, 0);  
+	NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+	strncpy(nlmsg_data(nlh), msg, msg_size);
+	nlmsg_unicast(infocoll_data.socket, skb_out, infocoll_data.pid);
+
 	return mpage_readpage(page, ext2_get_block);
 }
 
