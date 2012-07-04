@@ -37,10 +37,6 @@
 #include "acl.h"
 #include "xip.h"
 
-#include <linux/module.h>
-#include <net/sock.h>
-#include <linux/netlink.h>
-
 struct infocoll_datatype infocoll_data = {
 	.socket = NULL,
 	.pid = -1
@@ -1399,11 +1395,8 @@ static void sometestfnc(struct sk_buff *skb) {
 		return;
 	}
 
-	nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, msg_size, 0);  
-	NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
-	strncpy(nlmsg_data(nlh), msg, msg_size);
 
-	int res = nlmsg_unicast(infocoll_data.socket, skb_out, pid);
+	int res = infocoll_send_string(msg, NLMSG_DONE);
 
 	if (res < 0) {
 	    printk(KERN_INFO "Error while sending bak to user\n");
@@ -1413,9 +1406,6 @@ static void sometestfnc(struct sk_buff *skb) {
 static struct dentry *ext2_mount(struct file_system_type *fs_type,
 	int flags, const char *dev_name, void *data)
 {
-	/*
-		SOCkEKTZ GO HERE!111
-	*/
 	infocoll_data.socket = netlink_kernel_create(&init_net, 31, 0, sometestfnc, NULL, THIS_MODULE);
 
 	if (!infocoll_data.socket) {
@@ -1431,14 +1421,8 @@ static void ext2_unmount(struct super_block *sb)
 {
 	
 	char *msg = "Goodbye from kernel";
-	int msg_size = strlen(msg);
-	
-	struct sk_buff *skb_out = nlmsg_new(msg_size,0);
 
-	struct nlmsghdr *nlh = nlmsg_put(skb_out, 0, 0, NLMSG_ERROR, msg_size, 0);  
-	NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
-	strncpy(nlmsg_data(nlh), msg, msg_size);
-	nlmsg_unicast(infocoll_data.socket, skb_out, infocoll_data.pid);
+	infocoll_send_string(msg, NLMSG_ERROR);
 
 	netlink_kernel_release(infocoll_data.socket);
 	infocoll_data.pid = -1;
