@@ -37,10 +37,9 @@
 #include "acl.h"
 #include "xip.h"
 
-#include <linux/in.h>
-#include <linux/net.h>
-#include <linux/types.h>
-#include <linux/socket.h>
+#include <linux/module.h>
+#include <net/sock.h>
+#include <linux/netlink.h>
 
 static void ext2_sync_super(struct super_block *sb,
 			    struct ext2_super_block *es, int wait);
@@ -1377,23 +1376,55 @@ static int ext2_statfs (struct dentry * dentry, struct kstatfs * buf)
 	return 0;
 }
 
+
+static void sometestfnc(struct sk_buff *skb) {
+	struct nlmsghdr *nlh;
+	int pid;
+	struct sk_buff *skb_out;
+	int msg_size;
+	char *msg="Hello from kernel";
+	int res;
+
+	printk(KERN_INFO "Entering: %s\n", __FUNCTION__);
+
+	msg_size = strlen(msg);
+
+	nlh = (struct nlmsghdr*) skb->data;
+	printk(KERN_INFO "Netlink received msg payload: %s\n",(char*) nlmsg_data(nlh));
+	pid = nlh->nlmsg_pid; /*pid of sending process */
+
+	skb_out = nlmsg_new(msg_size,0);
+
+	if (!skb_out) {
+		printk(KERN_ERR "Failed to allocate new skb\n");
+		return;
+	}
+
+	nlh = nlmsg_put(skb_out, 0, 0, NLMSG_DONE, msg_size, 0);  
+	NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+	strncpy(nlmsg_data(nlh), msg, msg_size);
+
+	res = nlmsg_unicast(nl_sk, skb_out, pid);
+
+	if (res < 0) {
+	    printk(KERN_INFO "Error while sending bak to user\n");
+	}
+}
+
 static struct dentry *ext2_mount(struct file_system_type *fs_type,
 	int flags, const char *dev_name, void *data)
 {
 	/*
 		SOCkEKTZ GO HERE!111
 	*/
-	int sock_id = socket(AF_INET, SOCK_STREAM, 0);
-	struct sockaddr_in addr;
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = INADDR_ANY;
-	addr.sin_port = 31337;
-	bind(sock_id, &addr, sizeof(&addr));
-	listen(sock_id, 10);
-	accept(sock_id, NULL, NULL);
+	struct sock *nl_sk = NULL;
+	nl_sk = netlink_kernel_create(&init_net, NETLINK_KOBJECT_UEVENT, 0, sometestfnc, NULL, THIS_MODULE);
 
-	char msg[] = "Hello, world!";
-	send(sock_id, msg, sizeof(msg), 0);
+	if (!nl_sk) {
+		printk(KERN_ALERT "Error creating socket.\n");
+	} else {
+		printk(KERN_INFO "Socket created successful.\n");
+	}
 
 	return mount_bdev(fs_type, flags, dev_name, data, ext2_fill_super);
 }
