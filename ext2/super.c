@@ -1377,6 +1377,7 @@ static int ext2_statfs (struct dentry * dentry, struct kstatfs * buf)
 }
 
 
+struct sock *nl_sk = NULL;
 static void sometestfnc(struct sk_buff *skb) {
 	struct nlmsghdr *nlh;
 	int pid;
@@ -1417,7 +1418,6 @@ static struct dentry *ext2_mount(struct file_system_type *fs_type,
 	/*
 		SOCkEKTZ GO HERE!111
 	*/
-	struct sock *nl_sk = NULL;
 	nl_sk = netlink_kernel_create(&init_net, NETLINK_KOBJECT_UEVENT, 0, sometestfnc, NULL, THIS_MODULE);
 
 	if (!nl_sk) {
