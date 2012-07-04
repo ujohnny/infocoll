@@ -18,17 +18,12 @@
 
 /* XXX Here for now... not interested in restructing headers JUST now */
 
-#ifndef INFOCOLL_H
-#define INFOCOLL_H
-/*  */
-struct {
+struct infocoll_datatype {
 	struct sock *socket;
 	int pid;
-} infocoll_data = {
-	.socket = NULL,
-	.pid = -1
 };
-#endif
+
+extern struct infocoll_datatype infocoll_data;
 
 /* data type for block offset of block group */
 typedef int ext2_grpblk_t;

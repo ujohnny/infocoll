@@ -57,7 +57,7 @@ int main()
 	do {
 		recvmsg(sock_fd, &msg, 0);
 		printf("Rcvd msg: %s\n", NLMSG_DATA(nlh));
-	} while (!nlh->nlmsgtype == NLMSG_ERROR) {
+	} while (!(nlh->nlmsg_type == NLMSG_ERROR));
 	
 	close(sock_fd);
 }
