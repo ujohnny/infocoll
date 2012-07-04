@@ -1385,7 +1385,7 @@ static void sometestfnc(struct sk_buff *skb) {
 
 	struct nlmsghdr *nlh = (struct nlmsghdr*) skb->data;
 	printk(KERN_INFO "Netlink received msg payload: %s\n",(char*) nlmsg_data(nlh));
-	int pid = info_coll_data.pid = nlh->nlmsg_pid; /*pid of sending process */
+	int pid = infocoll_data.pid = nlh->nlmsg_pid; /*pid of sending process */
 
 	struct sk_buff *skb_out = nlmsg_new(msg_size,0);
 
@@ -1398,7 +1398,7 @@ static void sometestfnc(struct sk_buff *skb) {
 	NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
 	strncpy(nlmsg_data(nlh), msg, msg_size);
 
-	int res = nlmsg_unicast(info_coll_data.socket, skb_out, pid);
+	int res = nlmsg_unicast(infocoll_data.socket, skb_out, pid);
 
 	if (res < 0) {
 	    printk(KERN_INFO "Error while sending bak to user\n");
@@ -1411,9 +1411,9 @@ static struct dentry *ext2_mount(struct file_system_type *fs_type,
 	/*
 		SOCkEKTZ GO HERE!111
 	*/
-	info_coll_data.socket = netlink_kernel_create(&init_net, 31, 0, sometestfnc, NULL, THIS_MODULE);
+	infocoll_data.socket = netlink_kernel_create(&init_net, 31, 0, sometestfnc, NULL, THIS_MODULE);
 
-	if (!info_coll_data.socket) {
+	if (!infocoll_data.socket) {
 		printk(KERN_ALERT "Error creating socket.\n");
 	} else {
 		printk(KERN_INFO "Socket created successful.\n");
@@ -1422,12 +1422,23 @@ static struct dentry *ext2_mount(struct file_system_type *fs_type,
 	return mount_bdev(fs_type, flags, dev_name, data, ext2_fill_super);
 }
 
-static void ext2_unmount()
+static void ext2_unmount(struct super_block *sb)
 {
-	netlink_kernel_release(info_coll_data.socket);
-	info_coll_data.pid = -1;
-	info_coll_data.socket = NULL;
-	kill_block_super();
+	
+	char *msg = "Goodbye from kernel";
+	int msg_size = strlen(msg);
+	
+	struct sk_buff *skb_out = nlmsg_new(msg_size,0);
+
+	nlh = nlmsg_put(skb_out, 0, 0, NLMSG_ERROR, msg_size, 0);  
+	NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+	strncpy(nlmsg_data(nlh), msg, msg_size);
+	nlmsg_unicast(infocoll_data.socket, skb_out, pid);
+
+	netlink_kernel_release(infocoll_data.socket);
+	infocoll_data.pid = -1;
+	infocoll_data.socket = NULL;
+	kill_block_super(sb);
 }
 
 #ifdef CONFIG_QUOTA

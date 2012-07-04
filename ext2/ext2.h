@@ -22,10 +22,10 @@
 struct {
 	struct sock *socket;
 	int pid;
-} infocoll_data;
-
-infocoll_data.socket = NULL;
-infocoll_data.pid = -1;
+} infocoll_data = {
+	.socket = NULL,
+	.pid = -1
+};
 
 /* data type for block offset of block group */
 typedef int ext2_grpblk_t;
