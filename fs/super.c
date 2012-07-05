@@ -37,6 +37,11 @@
 
 #include "infocoll.h"
 
+struct infocoll_datatype infocoll_data = {
+        .socket = NULL,
+        .pid = -1
+};
+
 LIST_HEAD(super_blocks);
 DEFINE_SPINLOCK(sb_lock);
 

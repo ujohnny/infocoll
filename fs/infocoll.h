@@ -9,8 +9,11 @@ struct infocoll_datatype {
 
 extern struct infocoll_datatype infocoll_data;
 
-static int infocoll_send_string(char *msg, int status)
-{
+static int infocoll_send_string(char *msg, int status) {
+	if (infocoll_datatype.socket == NULL) {
+		return -1;
+	}
+
 	int msg_size = strlen(msg);
 	
 	struct sk_buff *skb_out = nlmsg_new(msg_size,0);
@@ -23,6 +26,10 @@ static int infocoll_send_string(char *msg, int status)
 
 
 static void infocoll_sock_init_callback(struct sk_buff *skb) {
+	if (infocoll_datatype.socket == NULL) {
+		return;
+	}
+
 	char *msg = "Hello from kernel";
 	int msg_size = strlen(msg);
 	
@@ -47,8 +54,11 @@ static void infocoll_sock_init_callback(struct sk_buff *skb) {
 	}
 }
 
-static void infocoll_close_socket()
-{
+static void infocoll_close_socket() {
+	if (infocoll_datatype.socket == NULL) {
+		return;
+	}
+
 	char *msg = "Goodbye from kernel";
 
 	infocoll_send_string(msg, NLMSG_ERROR);
