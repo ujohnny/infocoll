@@ -4,6 +4,7 @@
 
 struct infocoll_datatype {
 	struct sock *socket;
+	void *fs;
 	int pid;
 };
 
@@ -26,10 +27,6 @@ static int infocoll_send_string(char *msg, int status) {
 
 
 static void infocoll_sock_init_callback(struct sk_buff *skb) {
-	if (infocoll_data.socket == NULL) {
-		return;
-	}
-
 	char *msg = "Hello from kernel";
 	int msg_size = strlen(msg);
 	
