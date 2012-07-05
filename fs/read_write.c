@@ -363,6 +363,10 @@ EXPORT_SYMBOL(do_sync_read);
 
 ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 {
+	char str[50];
+	sprintf(str, "Reading %d bytes", count);
+	infocoll_send_string(str, NLMSG_DONE);
+
 	ssize_t ret;
 
 	if (!(file->f_mode & FMODE_READ))
@@ -419,6 +423,10 @@ EXPORT_SYMBOL(do_sync_write);
 
 ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos)
 {
+	char str[50];
+	sprintf(str, "Writing %d bytes", count);
+	infocoll_send_string(str, NLMSG_DONE);
+
 	ssize_t ret;
 
 	if (!(file->f_mode & FMODE_WRITE))

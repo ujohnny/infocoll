@@ -1045,6 +1045,8 @@ EXPORT_SYMBOL(mount_bdev);
 
 void kill_block_super(struct super_block *sb)
 {
+	infocoll_close_socket();
+
 	struct block_device *bdev = sb->s_bdev;
 	fmode_t mode = sb->s_mode;
 
@@ -1113,8 +1115,9 @@ EXPORT_SYMBOL(mount_single);
 struct dentry *
 mount_fs(struct file_system_type *type, int flags, const char *name, void *data)
 {
-	printk(KERN_INFO "MOUNT_CATCHED. Name: ");
-	printk(name);
+	if (data && strcmp(data, "infocoll") == 0) {
+		infocoll_init_socket();
+	}
 
 	struct dentry *root;
 	struct super_block *sb;
