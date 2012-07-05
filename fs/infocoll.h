@@ -76,3 +76,7 @@ static void infocoll_init_socket()
 		printk(KERN_INFO "Socket created successful.\n");
 	}
 }
+
+static int infocoll_connected() {
+	return (infocoll_data.socket == NULL) ? 0 : 1;
+}
