@@ -26,10 +26,6 @@ static int infocoll_send_string(char *msg, int status) {
 
 
 static void infocoll_sock_init_callback(struct sk_buff *skb) {
-	if (infocoll_data.socket == NULL) {
-		return;
-	}
-
 	char *msg = "Hello from kernel";
 	int msg_size = strlen(msg);
 	
@@ -78,4 +74,8 @@ static void infocoll_init_socket()
 	} else {
 		printk(KERN_INFO "Socket created successful.\n");
 	}
+}
+
+static int infocoll_connected() {
+	return (infocoll_data.socket == NULL) ? 0 : 1;
 }
