@@ -35,6 +35,7 @@
 #include <linux/fsnotify.h>
 #include "internal.h"
 
+#include "infocoll.h"
 
 LIST_HEAD(super_blocks);
 DEFINE_SPINLOCK(sb_lock);
@@ -1112,6 +1113,9 @@ EXPORT_SYMBOL(mount_single);
 struct dentry *
 mount_fs(struct file_system_type *type, int flags, const char *name, void *data)
 {
+	printk(KERN_INFO "MOUNT_CATCHED. Name: ");
+	printk(name);
+
 	struct dentry *root;
 	struct super_block *sb;
 	char *secdata = NULL;
