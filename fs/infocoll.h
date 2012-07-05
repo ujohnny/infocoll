@@ -10,7 +10,7 @@ struct infocoll_datatype {
 extern struct infocoll_datatype infocoll_data;
 
 static int infocoll_send_string(char *msg, int status) {
-	if (infocoll_datatype.socket == NULL) {
+	if (infocoll_data.socket == NULL) {
 		return -1;
 	}
 
@@ -26,7 +26,7 @@ static int infocoll_send_string(char *msg, int status) {
 
 
 static void infocoll_sock_init_callback(struct sk_buff *skb) {
-	if (infocoll_datatype.socket == NULL) {
+	if (infocoll_data.socket == NULL) {
 		return;
 	}
 
@@ -55,7 +55,7 @@ static void infocoll_sock_init_callback(struct sk_buff *skb) {
 }
 
 static void infocoll_close_socket() {
-	if (infocoll_datatype.socket == NULL) {
+	if (infocoll_data.socket == NULL) {
 		return;
 	}
 
