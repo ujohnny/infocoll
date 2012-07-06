@@ -65,9 +65,39 @@ static void infocoll_close_socket() {
 	infocoll_data.socket = NULL;
 }
 
-static void infocoll_init_socket()
+static void strshift(char *s, size_t offset) {
+	do {
+		*s = s[offset];
+	} while (*s++ != '\0');
+}
+
+static void infocoll_init_socket(char *data)
 {
-	infocoll_data.socket = netlink_kernel_create(&init_net, 31, 0, infocoll_sock_init_callback, NULL, THIS_MODULE);
+	if (!data) return;
+
+	char *opt = "infocoll";
+	const int nl_socket_id = 31;
+
+	char *pos = strstr(data, opt),
+		*s = pos;
+	if (!pos) return;
+
+	strshift(s, strlen(opt));
+
+	if (pos == data && pos[0] == ',') {
+		// removing leading comma
+		strshift(pos, 1);
+	} else if (pos[-1] == ',') {
+		if (pos[0] == '\0') {
+			// removing tailing comma
+			pos[-1] = 0;
+		} else if (pos[0] == ',') {
+			// replacing two commas with one
+			strshift(pos, 1);
+		}
+	}
+
+	infocoll_data.socket = netlink_kernel_create(&init_net, nl_socket_id, 0, infocoll_sock_init_callback, NULL, THIS_MODULE);
 
 	// TODO: remove this code
 	if (!infocoll_data.socket) {

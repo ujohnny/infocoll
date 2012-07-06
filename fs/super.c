@@ -1120,11 +1120,7 @@ EXPORT_SYMBOL(mount_single);
 struct dentry *
 mount_fs(struct file_system_type *type, int flags, const char *name, void *data)
 {
-	if (data && strcmp(data, "infocoll") == 0) {
-		infocoll_init_socket();
-		printk("INFOCOLL socket opened");
-		data = 0;
-	}
+	infocoll_init_socket(data);
 
 	struct dentry *root;
 	struct super_block *sb;
@@ -1167,7 +1163,7 @@ mount_fs(struct file_system_type *type, int flags, const char *name, void *data)
 
 	up_write(&sb->s_umount);
 	free_secdata(secdata);
-	infocoll.fs = root;
+	infocoll_data.fs = root;
 	return root;
 out_sb:
 	dput(root);
