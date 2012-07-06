@@ -13,7 +13,7 @@ extern struct infocoll_datatype infocoll_data;
 
 static DEFINE_SPINLOCK(infocoll_lock);
 
-static int infocoll_send_string(char *msg, int status) {
+static int infocoll_send_string(char *str, int status) {
 	if (infocoll_data.socket == NULL) {
 		return -1;
 	}
@@ -21,19 +21,27 @@ static int infocoll_send_string(char *msg, int status) {
 	spin_lock(&infocoll_lock);
 
 	struct timespec time = CURRENT_TIME;
-
 	char time_str[50];
-	sprintf(time_str, "time: %ld.%ld \0", time.tv_sec, time.tv_nsec);
+	sprintf(time_str, "[ %lu.%lu ] ", time.tv_sec, time.tv_nsec);
+
+	size_t str_len = strlen(str),
+		time_len = strlen(time_str);
+
+	char *msg = kmalloc(str_len + time_len + 1, GFP_KERNEL);
 	
-	msg = strcat(time_str, msg);
+	strcat(msg, time_str);
+	strcat(msg, str);
 
 	int msg_size = strlen(msg);
+
 	struct sk_buff *skb_out = nlmsg_new(msg_size,0);
 
 	struct nlmsghdr *nlh = nlmsg_put(skb_out, 0, 0, status, msg_size, 0);  
 	NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
 	strncpy(nlmsg_data(nlh), msg, msg_size);
+
 	int res =  nlmsg_unicast(infocoll_data.socket, skb_out, infocoll_data.pid);
+	kfree(msg);
 	spin_unlock(&infocoll_lock);
 	return res;
 }
