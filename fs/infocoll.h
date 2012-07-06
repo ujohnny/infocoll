@@ -21,10 +21,11 @@ static int infocoll_send_string(char *str, int status) {
 	sprintf(time_str, "[ %lu.%lu ] ", time.tv_sec, time.tv_nsec);
 
 	size_t str_len = strlen(str),
-		time_len = strlen(time_str);
+		time_len = strlen(time_str),
+		size = str_len + time_len + 1;
 
-	char *msg = kmalloc(str_len + time_len + 1, GFP_KERNEL);
-	msg[0] = 0;
+	char *msg = kmalloc(size, GFP_KERNEL);
+	memset(msg, 0, size);
 	
 	strcat(msg, time_str);
 	strcat(msg, str);
