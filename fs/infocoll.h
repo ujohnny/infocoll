@@ -27,7 +27,7 @@ static int infocoll_send_string(char *str, int status) {
 	size_t str_len = strlen(str),
 		time_len = strlen(time_str);
 
-	char *msg = kmalloc(str_len + time_len + 1, GFP_KERNEL);
+	char *msg = kmalloc(str_len + time_len + 1, GFP_ATOMIC);
 	
 	strcat(msg, time_str);
 	strcat(msg, str);
