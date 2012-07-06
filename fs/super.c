@@ -1167,7 +1167,7 @@ mount_fs(struct file_system_type *type, int flags, const char *name, void *data)
 
 	up_write(&sb->s_umount);
 	free_secdata(secdata);
-	infocoll.fs = root;
+	infocoll_data.fs = root;
 	return root;
 out_sb:
 	dput(root);

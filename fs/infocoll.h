@@ -1,6 +1,7 @@
 #include <linux/module.h>
 #include <net/sock.h>
 #include <linux/netlink.h>
+#include <linux/time.h>
 
 struct infocoll_datatype {
 	struct sock *socket;
@@ -15,9 +16,16 @@ static int infocoll_send_string(char *msg, int status) {
 		return -1;
 	}
 
-	int msg_size = strlen(msg);
+	struct timespec time = CURRENT_TIME;
+
+	char time_str[50];
+	sprintf(time_str, "time: %ld.%ld \0", time.tv_sec, time.tv_nsec);
 	
-	struct sk_buff *skb_out = nlmsg_new(msg_size,0);
+	msg = strcat(time_str, msg);
+
+	int msg_size = strlen(msg);
+	struct sk_buff *skb_out = nlmsg_new(0,0);	
+	skb_out = nlmsg_new(msg_size,0);
 
 	struct nlmsghdr *nlh = nlmsg_put(skb_out, 0, 0, status, msg_size, 0);  
 	NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */

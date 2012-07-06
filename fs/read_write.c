@@ -21,6 +21,7 @@
 #include <asm/unistd.h>
 
 #include "infocoll.h"
+#include <linux/mount.h>
 
 const struct file_operations generic_ro_fops = {
 	.llseek		= generic_file_llseek,
@@ -365,10 +366,19 @@ EXPORT_SYMBOL(do_sync_read);
 
 ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 {
-	if (infocoll.fs == file->f_dentry) {
+	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
 		char str[50];
-		sprintf(str, "Reading %ld bytes", count);
+		
+		sprintf(str, "Reading %ld bytes \\", count);
+				
 		infocoll_send_string(str, NLMSG_DONE);
+
+		if (pos) {
+			char offset[50];
+			sprintf(offset, "Offset %lld \\", *pos);
+//			strcat(str, offset);
+			infocoll_send_string(offset, NLMSG_DONE);
+		}
 	}
 
 	ssize_t ret;
@@ -427,10 +437,19 @@ EXPORT_SYMBOL(do_sync_write);
 
 ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos)
 {
-	if (infocoll.fs == file->f_dentry) {
+	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
 		char str[50];
-		sprintf(str, "Writing %d bytes", count);
+		
+		sprintf(str, "Writing %ld bytes \\", count);
+		
 		infocoll_send_string(str, NLMSG_DONE);
+
+		if (pos) {
+			char offset[50];
+			sprintf(offset, "Offset %lld \\", *pos);
+//			strcat(str, offset);
+			infocoll_send_string(offset, NLMSG_DONE);
+		}
 	}
 
 	ssize_t ret;
