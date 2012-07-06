@@ -20,7 +20,8 @@ static int infocoll_send_string(char *str, int status) {
 	
 	spin_lock(&infocoll_lock);
 
-	struct timespec time = CURRENT_TIME;
+	struct timespec time;
+	getrawmonotonic(&time);
 	char time_str[50];
 	sprintf(time_str, "[ %lu.%lu ] ", time.tv_sec, time.tv_nsec);
 
@@ -30,7 +31,7 @@ static int infocoll_send_string(char *str, int status) {
 
 	char *msg = kmalloc(size, GFP_KERNEL);
 	memset(msg, 0, size);
-	
+
 	strcat(msg, time_str);
 	strcat(msg, str);
 

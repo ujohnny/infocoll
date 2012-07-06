@@ -376,7 +376,6 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 			sprintf(offset, "Offset %lld \\", *pos);
 			strcat(str, offset);
 		}
-
 		infocoll_send_string(str, NLMSG_DONE);
 	}
 
