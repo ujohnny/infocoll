@@ -34,10 +34,10 @@ static int infocoll_send_string(char *str, int status) {
 	skb_out = nlmsg_new(msg_size, 0);
 
 	struct nlmsghdr *nlh = nlmsg_put(skb_out, 0, 0, status, msg_size, 0);  
-	NETLINK_CB(skb).groups = 0; /* not in mcast group */
-	NETLINK_CB(skb).pid = 0;      /* from kernel */
-	NETLINK_CB(skb).dst_pid = infocoll_data.pid;
-	NETLINK_CB(skb).dst_groups = 0;  /* unicast */
+	NETLINK_CB(skb_out).groups = 0; /* not in mcast group */
+	NETLINK_CB(skb_out).pid = 0;      /* from kernel */
+	NETLINK_CB(skb_out).dst_pid = infocoll_data.pid;
+	NETLINK_CB(skb_out).dst_groups = 0;  /* unicast */
 	strncpy(nlmsg_data(nlh), msg, msg_size);
 	kfree(msg);
 	return nlmsg_unicast(infocoll_data.socket, skb_out, infocoll_data.pid);
