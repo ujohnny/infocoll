@@ -367,8 +367,9 @@ EXPORT_SYMBOL(do_sync_read);
 ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 {
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
-		char str[50];
-		sprintf(str, "Reading %ld bytes \\", count);
+		char str[200];
+		
+		sprintf(str, "Reading %lu bytes in %p (%s)", count, file->f_dentry->d_inode, file->f_dentry->d_name.name);
 
 		if (pos) {
 			char offset[50];

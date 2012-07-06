@@ -29,7 +29,6 @@ static int infocoll_send_string(char *str, int status) {
 
 	char *msg = kmalloc(str_len + time_len + 1, GFP_KERNEL);
 	msg[0] = 0;
-
 	strcat(msg, time_str);
 	strcat(msg, str);
 
@@ -38,7 +37,7 @@ static int infocoll_send_string(char *str, int status) {
 	struct sk_buff *skb_out = nlmsg_new(msg_size,0);
 
 	struct nlmsghdr *nlh = nlmsg_put(skb_out, 0, 0, status, msg_size, 0);  
-	NETLINK_CB(skb_out).dst_group = 0; /* not in mcast group */
+	NETLINK_CB(skb_out).dst_group = 0;  /* unicast */
 	strncpy(nlmsg_data(nlh), msg, msg_size);
 
 	int res =  nlmsg_unicast(infocoll_data.socket, skb_out, infocoll_data.pid);
