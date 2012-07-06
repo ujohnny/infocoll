@@ -369,14 +369,14 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
 		char str[50];
 		sprintf(str, "Reading %ld bytes \\", count);
-		infocoll_send_string(str, NLMSG_DONE);
 
 		if (pos) {
 			char offset[50];
 			sprintf(offset, "Offset %lld \\", *pos);
-//			strcat(str, offset);
-			infocoll_send_string(offset, NLMSG_DONE);
+			strcat(str, offset);
 		}
+
+		infocoll_send_string(str, NLMSG_DONE);
 	}
 
 	ssize_t ret;
@@ -440,14 +440,13 @@ ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_
 		
 		sprintf(str, "Writing %ld bytes \\", count);
 		
-		infocoll_send_string(str, NLMSG_DONE);
-
 		if (pos) {
 			char offset[50];
 			sprintf(offset, "Offset %lld \\", *pos);
-//			strcat(str, offset);
-			infocoll_send_string(offset, NLMSG_DONE);
+			strcat(str, offset);
 		}
+
+		infocoll_send_string(str, NLMSG_DONE);
 	}
 
 	ssize_t ret;
