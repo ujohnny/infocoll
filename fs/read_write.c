@@ -369,7 +369,7 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
 		char str[200];
 		
-		sprintf(str, "Reading %lu bytes in %p (%s)", count, file->f_dentry->d_inode, file->f_dentry->d_name.name);
+		sprintf(str, "Reading %lu bytes in %p (%s) ", count, file->f_dentry->d_inode, file->f_dentry->d_name.name);
 
 		if (pos) {
 			char offset[50];
@@ -437,9 +437,9 @@ EXPORT_SYMBOL(do_sync_write);
 ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos)
 {
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
-		char str[50];
+		char str[200];
 		
-		sprintf(str, "Writing %ld bytes \\", count);
+		sprintf(str, "Writing %lu bytes in %p (%s) ", count, file->f_dentry->d_inode, file->f_dentry->d_name.name);
 		
 		if (pos) {
 			char offset[50];
