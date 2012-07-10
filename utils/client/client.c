@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #define NETLINK_INFOCOLL 31
 #define MAX_PAYLOAD 41 /* maximum payload size*/
