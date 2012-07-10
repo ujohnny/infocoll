@@ -5,14 +5,24 @@
 #include <stdlib.h>
 
 #define NETLINK_INFOCOLL 31
-#define MAX_PAYLOAD 1024 /* maximum payload size*/
+#define MAX_PAYLOAD 41 /* maximum payload size*/
+
+size_t extract_size_t(char *str)
+{
+	size_t v = 0;
+	int i;
+	for (i = 0; i < 8; ++i) {
+		v |= str[7-i] << (i*8);
+	}
+	return v;
+}
 
 int main()
 {
 
 	int sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_INFOCOLL);
-	if(sock_fd<0) {
-		printf("device not mounted\n");
+	if(sock_fd < 0) {
+		printf("Device not mounted\n");
 		return -1;
 	}
 
@@ -37,7 +47,7 @@ int main()
 	nlh->nlmsg_pid = getpid();
 	nlh->nlmsg_flags = 0;
 	
-	strcpy(NLMSG_DATA(nlh), "Hello");
+	strcpy(NLMSG_DATA(nlh), "llambda!");
 
 	struct iovec iov;
 	iov.iov_base = (void *) nlh;
@@ -45,7 +55,7 @@ int main()
 
 	struct msghdr msg;
 		
-	msg.msg_name = (void *)&dst_addr;
+	msg.msg_name = (void *) &dst_addr;
 	msg.msg_namelen = sizeof(dst_addr);
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
@@ -58,8 +68,16 @@ int main()
 
 	do {
 		recvmsg(sock_fd, &msg, 0);
-		printf("Rcvd msg: %s\n", NLMSG_DATA(nlh));
-		memset(NLMSG_DATA(nlh), 0, MAX_PAYLOAD);
+		char *payload = NLMSG_DATA(nlh);
+		char type = payload[0];
+		size_t length = extract_size_t(payload+1);
+		size_t offset = extract_size_t(payload+9);
+		size_t inode = extract_size_t(payload+17);
+		size_t time_sec = extract_size_t(payload+25);
+		size_t time_nsec = extract_size_t(payload+33);
+		printf("Rcvd msg: {type = %d, length = %lu, offset = %lu, inode = %lu, time = %lu.%lu}\n",
+		                   type, length, offset, inode, time_sec, time_nsec);
+		memset(payload, 0, MAX_PAYLOAD);
 	} while (!(nlh->nlmsg_type == NLMSG_ERROR));
 	
 	close(sock_fd);

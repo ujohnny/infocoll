@@ -367,16 +367,10 @@ EXPORT_SYMBOL(do_sync_read);
 ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 {
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
-		char str[200];
-		
-		sprintf(str, "Reading %lu bytes in %lu (%s) ", count, file->f_dentry->d_inode->i_ino, file->f_dentry->d_name.name);
-
-		if (pos) {
-			char offset[50];
-			sprintf(offset, "Offset %lu", *pos);
-			strcat(str, offset);
-		}
-		infocoll_send_string(str, NLMSG_DONE);
+		loff_t offset = pos ? *pos : 0;
+		ulong inode = file->f_dentry->d_inode->i_ino;
+	
+		infocoll_send(INFOCOLL_READ, inode, count, offset, NLMSG_DONE);
 	}
 
 	ssize_t ret;
@@ -436,17 +430,10 @@ EXPORT_SYMBOL(do_sync_write);
 ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos)
 {
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
-		char str[200];
-		
-		sprintf(str, "Writing %lu bytes in %lu (%s) ", count, file->f_dentry->d_inode->i_ino, file->f_dentry->d_name.name);
-		
-		if (pos) {
-			char offset[50];
-			sprintf(offset, "Offset %lu", *pos);
-			strcat(str, offset);
-		}
-
-		infocoll_send_string(str, NLMSG_DONE);
+		loff_t offset = pos ? *pos : 0;
+		ulong inode = file->f_dentry->d_inode->i_ino;
+	
+		infocoll_send(INFOCOLL_WRITE, inode, count, offset, NLMSG_DONE);
 	}
 
 	ssize_t ret;
