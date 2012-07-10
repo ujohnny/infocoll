@@ -19,11 +19,12 @@ extern struct infocoll_datatype infocoll_data;
 
 // static DEFINE_SPINLOCK(infocoll_lock);
 
-static void infocoll_write_to_buff(char *buff, unsigned long long val)
+static void infocoll_write_to_buff(char *buff, uint64_t val)
 {
 	int i;
 	for (i = 0; i < 8; ++i) {
-		buff[7 - i] = (val >> (i * 8)) & 0xFF;
+		buff[7 - i] = val & 0xFF;
+		val >>= 8;
 	}
 }
 
@@ -31,13 +32,13 @@ static void infocoll_write_to_buff(char *buff, unsigned long long val)
  * infocoll_send sends a message to the client
  * This message has this structure:
  * struct infocoll_message {
- *   char type;           // type of action: INFOCOLL_INIT, INFOCOLL_READ,
- *                           INFOCOLL_WRITE or INFOCOLL_CLOSE
- *   size_t offset;       // action offset
- *   size_t length;       // number of bytes affected
- *   size_t inode;        // inode number
- *   size_t time_sec;     // seconds
- *   size_t time_nsec;    // nanoseconds
+ *   char type;             // type of action: INFOCOLL_INIT, INFOCOLL_READ,
+ *                             INFOCOLL_WRITE or INFOCOLL_CLOSE
+ *   uint64_t offset;       // action offset
+ *   uint64_t length;       // number of bytes affected
+ *   uint64_t inode;        // inode number
+ *   uint64_t time_sec;     // seconds
+ *   uint64_t time_nsec;    // nanoseconds
  * };
  */
 static int infocoll_send(char type, ulong inode, size_t length
@@ -54,13 +55,13 @@ static int infocoll_send(char type, ulong inode, size_t length
 	long time_sec = time.tv_sec;
 	long time_nsec = time.tv_nsec;
 
-	const size_t size = 41; // 41 = 4*8 + 1
+	const int size = 41; // 41 = 4*8 + 1
 
-	struct sk_buff *skb_out = nlmsg_new(size,0);
+	struct sk_buff *skb_out = nlmsg_new(size, 0);
 	struct nlmsghdr *nlh = nlmsg_put(skb_out, 0, 0, status, size, 0);  
 	NETLINK_CB(skb_out).dst_group = 0;  /* unicast */
 
-	char *payload = nlmsg_data(nlh);
+	char *payload = NLMSG_DATA(nlh);
 	payload[0] = type;
 	infocoll_write_to_buff(payload + 1, offset);
 	infocoll_write_to_buff(payload + 9, length);
@@ -76,7 +77,6 @@ static int infocoll_send(char type, ulong inode, size_t length
 
 static void infocoll_sock_init_callback(struct sk_buff *skb)
 {
-
 	struct nlmsghdr *nlh = (struct nlmsghdr*) skb->data;
 	printk(KERN_INFO "[ INFOCOLL ] Netlink received msg payload: %s\n",(char*) nlmsg_data(nlh));
 	infocoll_data.pid = nlh->nlmsg_pid; /*pid of sending process */
@@ -90,7 +90,7 @@ static void infocoll_close_socket()
 		return;
 	}
 
-	infocoll_send(INFOCOLL_CLOSE, 0, 0, 0, NLMSG_DONE);
+	infocoll_send(INFOCOLL_CLOSE, 0, 0, 0, NLMSG_ERROR);
 
 	netlink_kernel_release(infocoll_data.socket);
 	infocoll_data.pid = -1;
@@ -133,9 +133,9 @@ static void infocoll_init_socket(char *data)
 	infocoll_data.socket = netlink_kernel_create(&init_net, nl_socket_id, 0, infocoll_sock_init_callback, NULL, THIS_MODULE);
 
 	// TODO: remove this code
-	if (!infocoll_data.socket) {
-		printk(KERN_ALERT "Error while starting infocoll.\n");
-	} else {
+	if (infocoll_data.socket) {
 		printk(KERN_INFO "Infocoll started successful.\n");
+	} else {
+		printk(KERN_ALERT "Error while starting infocoll.\n");
 	}
 }
