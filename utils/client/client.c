@@ -12,9 +12,22 @@ size_t extract_size_t(char *str)
 	size_t v = 0;
 	int i;
 	for (i = 0; i < 8; ++i) {
-		v |= str[7-i] << (i*8);
+		v |= ((size_t) str[7-i]) << (i*8);
 	}
 	return v;
+}
+
+int parse_data(struct nlmsghdr *nlh) {
+	char *payload = NLMSG_DATA(nlh);
+	char type = payload[0];
+	size_t length = extract_size_t(payload+1);
+	size_t offset = extract_size_t(payload+9);
+	size_t inode = extract_size_t(payload+17);
+	size_t time_sec = extract_size_t(payload+25);
+	size_t time_nsec = extract_size_t(payload+33); //TODO: fix incorrect nsec output
+	printf("Rcvd msg: {type = %d, length = %lu, offset = %lu, inode = %lu, time = %lu.%lu}\n",
+		   type, length, offset, inode, time_sec, time_nsec);
+	memset(payload, 0, MAX_PAYLOAD);
 }
 
 int main()
@@ -68,16 +81,7 @@ int main()
 
 	do {
 		recvmsg(sock_fd, &msg, 0);
-		char *payload = NLMSG_DATA(nlh);
-		char type = payload[0];
-		size_t length = extract_size_t(payload+1);
-		size_t offset = extract_size_t(payload+9);
-		size_t inode = extract_size_t(payload+17);
-		size_t time_sec = extract_size_t(payload+25);
-		size_t time_nsec = extract_size_t(payload+33);
-		printf("Rcvd msg: {type = %d, length = %lu, offset = %lu, inode = %lu, time = %lu.%lu}\n",
-		                   type, length, offset, inode, time_sec, time_nsec);
-		memset(payload, 0, MAX_PAYLOAD);
+		parse_data(nlh);
 	} while (!(nlh->nlmsg_type == NLMSG_ERROR));
 	
 	close(sock_fd);
