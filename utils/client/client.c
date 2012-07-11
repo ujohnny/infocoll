@@ -8,7 +8,7 @@
 #define NETLINK_INFOCOLL 31
 #define MAX_PAYLOAD 41 /* maximum payload size*/
 
-uint64_t extract_size_t(char *str)
+uint64_t extract_uint64(char *str)
 {
 	uint64_t v = 0;
 	int i;
@@ -21,11 +21,11 @@ uint64_t extract_size_t(char *str)
 void process_data(struct nlmsghdr *nlh) {
 	char *payload = NLMSG_DATA(nlh);
 	char type = payload[0];
-	uint64_t length = extract_size_t(payload+1),
-		offset = extract_size_t(payload+9),
-		inode = extract_size_t(payload+17),
-		time_sec = extract_size_t(payload+25),
-		time_nsec = extract_size_t(payload+33); //TODO: fix incorrect nsec output
+	uint64_t length = extract_uint64(payload+1),
+		offset = extract_uint64(payload+9),
+		inode = extract_uint64(payload+17),
+		time_sec = extract_uint64(payload+25),
+		time_nsec = extract_uint64(payload+33); //TODO: fix incorrect nsec output
 	printf("Rcvd msg: {type = %d, length = %llu, offset = %llu, inode = %llu, time = %llu.%llu}\n",
 		   type, length, offset, inode, time_sec, time_nsec);
 	memset(payload, 0, MAX_PAYLOAD);

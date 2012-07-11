@@ -52,8 +52,6 @@ static int infocoll_send(char type, ulong inode, size_t length
 
 	struct timespec time;
 	getrawmonotonic(&time);
-	long time_sec = time.tv_sec;
-	long time_nsec = time.tv_nsec;
 
 	const int size = 41; // 41 = 4*8 + 1
 
@@ -66,8 +64,8 @@ static int infocoll_send(char type, ulong inode, size_t length
 	infocoll_write_to_buff(payload + 1, offset);
 	infocoll_write_to_buff(payload + 9, length);
 	infocoll_write_to_buff(payload + 17, inode);
-	infocoll_write_to_buff(payload + 25, time_sec);
-	infocoll_write_to_buff(payload + 33, time_nsec);
+	infocoll_write_to_buff(payload + 25, time.tv_sec);
+	infocoll_write_to_buff(payload + 33, time.tv_nsec);
 
 	int res =  nlmsg_unicast(infocoll_data.socket, skb_out, infocoll_data.pid);
 //	spin_unlock(&infocoll_lock);
