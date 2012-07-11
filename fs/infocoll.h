@@ -19,7 +19,7 @@ extern struct infocoll_datatype infocoll_data;
 
 // static DEFINE_SPINLOCK(infocoll_lock);
 
-static void infocoll_write_to_buff(char *buff, uint64_t val)
+static void infocoll_write_to_buff(unsigned char *buff, uint64_t val)
 {
 	int i;
 	for (i = 0; i < 8; ++i) {
@@ -59,7 +59,7 @@ static int infocoll_send(char type, ulong inode, size_t length
 	struct nlmsghdr *nlh = nlmsg_put(skb_out, 0, 0, status, size, 0);  
 	NETLINK_CB(skb_out).dst_group = 0;  /* unicast */
 
-	char *payload = NLMSG_DATA(nlh);
+	unsigned char *payload = NLMSG_DATA(nlh);
 	payload[0] = type;
 	infocoll_write_to_buff(payload + 1, offset);
 	infocoll_write_to_buff(payload + 9, length);
