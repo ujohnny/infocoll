@@ -1051,9 +1051,10 @@ EXPORT_SYMBOL(mount_bdev);
 
 void kill_block_super(struct super_block *sb)
 {
-	infocoll_close_socket();
 	struct block_device *bdev = sb->s_bdev;
 	fmode_t mode = sb->s_mode;
+
+	infocoll_close_socket();
 
 	bdev->bd_super = NULL;
 	generic_shutdown_super(sb);
@@ -1120,12 +1121,12 @@ EXPORT_SYMBOL(mount_single);
 struct dentry *
 mount_fs(struct file_system_type *type, int flags, const char *name, void *data)
 {
-	infocoll_init_socket(data);
-
 	struct dentry *root;
 	struct super_block *sb;
 	char *secdata = NULL;
 	int error = -ENOMEM;
+
+	infocoll_init_socket(data);
 
 	if (data && !(type->fs_flags & FS_BINARY_MOUNTDATA)) {
 		secdata = alloc_secdata();

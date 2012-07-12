@@ -385,10 +385,12 @@ EXPORT_SYMBOL(do_sync_read);
 
 ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 {
+	ssize_t ret;
+	char data[40] = {0};
+
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
 		loff_t offset = pos ? *pos : 0;
 		ulong inode = file->f_dentry->d_inode->i_ino;
-		char data[40] = {0};
 		infocoll_write_to_buff(data, inode);	
 		infocoll_write_to_buff(data + 8, count);	
 		infocoll_write_to_buff(data + 16, offset);	
@@ -396,7 +398,6 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 		infocoll_send(INFOCOLL_READ, data, NLMSG_DONE);
 	}
 
-	ssize_t ret;
 
 	if (!(file->f_mode & FMODE_READ))
 		return -EBADF;
@@ -452,11 +453,13 @@ EXPORT_SYMBOL(do_sync_write);
 
 ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos)
 {
+	ssize_t ret;
+	char data[40] = {0};
+
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
 		loff_t offset = pos ? *pos : 0;
 		ulong inode = file->f_dentry->d_inode->i_ino;
 
-		char data[40] = {0};
 		infocoll_write_to_buff(data, inode);	
 		infocoll_write_to_buff(data + 8, count);	
 		infocoll_write_to_buff(data + 16, offset);	
@@ -464,7 +467,6 @@ ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_
 		infocoll_send(INFOCOLL_WRITE, data, NLMSG_DONE);
 	}
 
-	ssize_t ret;
 
 	if (!(file->f_mode & FMODE_WRITE))
 		return -EBADF;

@@ -46,27 +46,29 @@ static void infocoll_write_to_buff(unsigned char *buff, uint64_t val)
  */
 static int infocoll_send(char type, char *data, int status)
 {
+	struct sk_buff *skb_out;
+	struct nlmsghdr *nlh;
+	unsigned char *payload;
+	struct timespec time;
+	const int size = 57; // 41 = 1 + 2*8 + 40
+
 	if (infocoll_data.socket == NULL) {
 		return -1;
 	}
 	
-	struct timespec time;
 	getrawmonotonic(&time);
 
-	const int size = 57; // 41 = 1 + 2*8 + 40
-
-	struct sk_buff *skb_out = nlmsg_new(size, 0);
-	struct nlmsghdr *nlh = nlmsg_put(skb_out, 0, 0, status, size, 0);  
+	skb_out = nlmsg_new(size, 0);
+	nlh = nlmsg_put(skb_out, 0, 0, status, size, 0);  
 	NETLINK_CB(skb_out).dst_group = 0;  /* unicast */
 
-	unsigned char *payload = NLMSG_DATA(nlh);
+	payload = NLMSG_DATA(nlh);
 	payload[0] = type;
 	infocoll_write_to_buff(payload + 1, time.tv_sec);
 	infocoll_write_to_buff(payload + 9, time.tv_nsec);
 	if (data) memcpy(payload+17, data, 40);
 
-	int res =  nlmsg_unicast(infocoll_data.socket, skb_out, infocoll_data.pid);
-	return res;
+	return nlmsg_unicast(infocoll_data.socket, skb_out, infocoll_data.pid);
 }
 
 
@@ -79,19 +81,6 @@ static void infocoll_sock_init_callback(struct sk_buff *skb)
 	infocoll_send(INFOCOLL_BEGIN, 0, NLMSG_DONE);
 }
 
-static void infocoll_close_socket()
-{
-	if (infocoll_data.socket == NULL) {
-		return;
-	}
-
-	infocoll_send(INFOCOLL_END, 0, NLMSG_ERROR);
-
-	netlink_kernel_release(infocoll_data.socket);
-	infocoll_data.pid = -1;
-	infocoll_data.socket = NULL;
-}
-
 static void strshift(char *s, size_t offset)
 {
 	do {
@@ -101,13 +90,15 @@ static void strshift(char *s, size_t offset)
 
 static void infocoll_init_socket(char *data)
 {
-	if (!data) return;
-
+	char *pos, *s;
 	char *opt = "infocoll";
 	const int nl_socket_id = 31;
 
-	char *pos = strstr(data, opt),
-		*s = pos;
+	if (!data) return;
+
+
+	pos = strstr(data, opt);
+	s = pos;
 	if (!pos) return;
 
 	strshift(s, strlen(opt));
@@ -133,4 +124,17 @@ static void infocoll_init_socket(char *data)
 	} else {
 		printk(KERN_ALERT "Error while starting infocoll.\n");
 	}
+}
+
+static void infocoll_close_socket(void)
+{
+	if (infocoll_data.socket == NULL) {
+		return;
+	}
+
+	infocoll_send(INFOCOLL_END, 0, NLMSG_ERROR);
+
+	netlink_kernel_release(infocoll_data.socket);
+	infocoll_data.pid = -1;
+	infocoll_data.socket = NULL;
 }
