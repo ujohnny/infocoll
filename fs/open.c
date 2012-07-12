@@ -173,7 +173,7 @@ static long do_sys_ftruncate(unsigned int fd, loff_t length, int small)
 		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
 
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
-		char data[40];
+		char data[40] = {0};
 		infocoll_write_to_buff(data, inode->i_ino);
 		infocoll_write_to_buff(data + 8, length);
 		infocoll_send(INFOCOLL_TRUNCATE, data, NLMSG_DONE);
