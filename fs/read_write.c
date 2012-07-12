@@ -252,7 +252,7 @@ SYSCALL_DEFINE3(lseek, unsigned int, fd, off_t, offset, unsigned int, origin)
 
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
 		ulong inode = file->f_dentry->d_inode->i_ino;
-		char data[40];
+		char data[40] = {0};
 		infocoll_write_to_buff(data, inode);	
 		infocoll_write_to_buff(data + 8, offset);	
 		infocoll_write_to_buff(data + 16, origin);	
@@ -294,7 +294,7 @@ SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned long, offset_high,
 
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
 		ulong inode = file->f_dentry->d_inode->i_ino;
-		char data[40];
+		char data[40] = {0};
 		infocoll_write_to_buff(data, inode);
 		infocoll_write_to_buff(data + 8, ((loff_t) offset_high << 32) | offset_low);
 		infocoll_write_to_buff(data + 16, origin);
@@ -388,7 +388,7 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
 		loff_t offset = pos ? *pos : 0;
 		ulong inode = file->f_dentry->d_inode->i_ino;
-		char data[40];
+		char data[40] = {0};
 		infocoll_write_to_buff(data, inode);	
 		infocoll_write_to_buff(data + 8, count);	
 		infocoll_write_to_buff(data + 16, offset);	
@@ -456,7 +456,7 @@ ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_
 		loff_t offset = pos ? *pos : 0;
 		ulong inode = file->f_dentry->d_inode->i_ino;
 
-		char data[40];
+		char data[40] = {0};
 		infocoll_write_to_buff(data, inode);	
 		infocoll_write_to_buff(data + 8, count);	
 		infocoll_write_to_buff(data + 16, offset);	
