@@ -3,10 +3,18 @@
 #include <linux/netlink.h>
 #include <linux/time.h>
 
-#define INFOCOLL_INIT 0
-#define INFOCOLL_READ 1
-#define INFOCOLL_WRITE 2
-#define INFOCOLL_CLOSE 3
+#define INFOCOLL_BEGIN  0
+#define INFOCOLL_END    1
+#define INFOCOLL_OPEN   2
+#define INFOCOLL_READ   3
+#define INFOCOLL_WRITE  4
+#define INFOCOLL_LSEEK  5
+#define INFOCOLL_FSYNC  6
+#define INFOCOLL_MKNOD  7
+#define INFOCOLL_UNLINK 8
+#define INFOCOLL_ALLOCATE 9
+#define INFOCOLL_TRUNCATE 10
+#define INFOCOLL_CLOSE  11
 
 struct infocoll_datatype {
 	struct sock *socket;
@@ -16,8 +24,6 @@ struct infocoll_datatype {
 
 
 extern struct infocoll_datatype infocoll_data;
-
-// static DEFINE_SPINLOCK(infocoll_lock);
 
 static void infocoll_write_to_buff(unsigned char *buff, uint64_t val)
 {
@@ -32,28 +38,22 @@ static void infocoll_write_to_buff(unsigned char *buff, uint64_t val)
  * infocoll_send sends a message to the client
  * This message has this structure:
  * struct infocoll_message {
- *   char type;             // type of action: INFOCOLL_INIT, INFOCOLL_READ,
- *                             INFOCOLL_WRITE or INFOCOLL_CLOSE
- *   uint64_t offset;       // action offset
- *   uint64_t length;       // number of bytes affected
- *   uint64_t inode;        // inode number
- *   uint64_t time_sec;     // seconds
- *   uint64_t time_nsec;    // nanoseconds
+ *   char type;           // action type: INFOCOLL_INIT, INFOCOLL_READ, etc
+ *   uint64_t time_sec;   // seconds
+ *   uint64_t time_nsec;  // nanoseconds
+ *   char[40] data;       // custom data
  * };
  */
-static int infocoll_send(char type, ulong inode, size_t length
-	, loff_t offset, int status)
+static int infocoll_send(char type, char *data, int status)
 {
 	if (infocoll_data.socket == NULL) {
 		return -1;
 	}
 	
-//	spin_lock(&infocoll_lock);
-
 	struct timespec time;
 	getrawmonotonic(&time);
 
-	const int size = 41; // 41 = 4*8 + 1
+	const int size = 57; // 41 = 1 + 2*8 + 40
 
 	struct sk_buff *skb_out = nlmsg_new(size, 0);
 	struct nlmsghdr *nlh = nlmsg_put(skb_out, 0, 0, status, size, 0);  
@@ -61,14 +61,11 @@ static int infocoll_send(char type, ulong inode, size_t length
 
 	unsigned char *payload = NLMSG_DATA(nlh);
 	payload[0] = type;
-	infocoll_write_to_buff(payload + 1, offset);
-	infocoll_write_to_buff(payload + 9, length);
-	infocoll_write_to_buff(payload + 17, inode);
-	infocoll_write_to_buff(payload + 25, time.tv_sec);
-	infocoll_write_to_buff(payload + 33, time.tv_nsec);
+	infocoll_write_to_buff(payload + 1, time.tv_sec);
+	infocoll_write_to_buff(payload + 9, time.tv_nsec);
+	if (data) memcpy(payload+17, data, 40);
 
 	int res =  nlmsg_unicast(infocoll_data.socket, skb_out, infocoll_data.pid);
-//	spin_unlock(&infocoll_lock);
 	return res;
 }
 
@@ -79,7 +76,7 @@ static void infocoll_sock_init_callback(struct sk_buff *skb)
 	printk(KERN_INFO "[ INFOCOLL ] Netlink received msg payload: %s\n",(char*) nlmsg_data(nlh));
 	infocoll_data.pid = nlh->nlmsg_pid; /*pid of sending process */
 
-	infocoll_send(INFOCOLL_INIT, 0, 0, 0, NLMSG_DONE);
+	infocoll_send(INFOCOLL_BEGIN, 0, NLMSG_DONE);
 }
 
 static void infocoll_close_socket()
@@ -88,7 +85,7 @@ static void infocoll_close_socket()
 		return;
 	}
 
-	infocoll_send(INFOCOLL_CLOSE, 0, 0, 0, NLMSG_ERROR);
+	infocoll_send(INFOCOLL_END, 0, NLMSG_ERROR);
 
 	netlink_kernel_release(infocoll_data.socket);
 	infocoll_data.pid = -1;

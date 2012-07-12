@@ -21,13 +21,21 @@ uint64_t extract_uint64(unsigned char *str)
 void process_data(struct nlmsghdr *nlh) {
 	unsigned char *payload = NLMSG_DATA(nlh);
 	unsigned char type = payload[0];
-	uint64_t offset = extract_uint64(payload+1),
-		length = extract_uint64(payload+9),
-		inode = extract_uint64(payload+17),
-		time_sec = extract_uint64(payload+25),
-		time_nsec = extract_uint64(payload+33);
-	printf("%d\t%llu\t%llu\t%llu\t%llu.%llu\n",
-		   type, length, offset, inode, time_sec, time_nsec);
+	uint64_t time_sec = extract_uint64(payload+1),
+		time_nsec = extract_uint64(payload+9),
+		f1 = extract_uint64(payload+17),
+		f2 = extract_uint64(payload+25),
+		f3 = extract_uint64(payload+33),
+		f4 = extract_uint64(payload+41),
+		f5 = extract_uint64(payload+49);
+	printf("%d\t" // type
+			"%llu.%llu\t" // time
+			"%llu\t" // f1
+			"%llu\t" // f2
+			"%llu\t" // f3
+			"%llu\t" // f4
+			"%llu\t\n", // f5
+		   type, time_sec, time_nsec, f1, f2, f3, f4, f5);
 	memset(payload, 0, MAX_PAYLOAD);
 }
 

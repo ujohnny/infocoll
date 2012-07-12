@@ -249,6 +249,16 @@ SYSCALL_DEFINE3(lseek, unsigned int, fd, off_t, offset, unsigned int, origin)
 			retval = -EOVERFLOW;	/* LFS: should only happen on 32 bit platforms */
 	}
 	fput_light(file, fput_needed);
+
+	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
+		ulong inode = file->f_dentry->d_inode->i_ino;
+		char data[40];
+		infocoll_write_to_buff(data, inode);	
+		infocoll_write_to_buff(data + 8, offset);	
+		infocoll_write_to_buff(data + 16, origin);	
+	
+		infocoll_send(INFOCOLL_LSEEK, data, NLMSG_DONE);
+	}
 bad:
 	return retval;
 }
@@ -280,6 +290,15 @@ SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned long, offset_high,
 		retval = -EFAULT;
 		if (!copy_to_user(result, &offset, sizeof(offset)))
 			retval = 0;
+	}
+
+	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
+		ulong inode = file->f_dentry->d_inode->i_ino;
+		char data[40];
+		infocoll_write_to_buff(data, inode);
+		infocoll_write_to_buff(data + 8, ((loff_t) offset_high << 32) | offset_low);
+		infocoll_write_to_buff(data + 16, origin);
+		infocoll_send(INFOCOLL_LSEEK, data, NLMSG_DONE);
 	}
 out_putf:
 	fput_light(file, fput_needed);
@@ -369,8 +388,12 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
 		loff_t offset = pos ? *pos : 0;
 		ulong inode = file->f_dentry->d_inode->i_ino;
+		char data[40];
+		infocoll_write_to_buff(data, inode);	
+		infocoll_write_to_buff(data + 8, count);	
+		infocoll_write_to_buff(data + 16, offset);	
 	
-		infocoll_send(INFOCOLL_READ, inode, count, offset, NLMSG_DONE);
+		infocoll_send(INFOCOLL_READ, data, NLMSG_DONE);
 	}
 
 	ssize_t ret;
@@ -432,8 +455,13 @@ ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
 		loff_t offset = pos ? *pos : 0;
 		ulong inode = file->f_dentry->d_inode->i_ino;
+
+		char data[40];
+		infocoll_write_to_buff(data, inode);	
+		infocoll_write_to_buff(data + 8, count);	
+		infocoll_write_to_buff(data + 16, offset);	
 	
-		infocoll_send(INFOCOLL_WRITE, inode, count, offset, NLMSG_DONE);
+		infocoll_send(INFOCOLL_WRITE, data, NLMSG_DONE);
 	}
 
 	ssize_t ret;
