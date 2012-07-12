@@ -178,6 +178,7 @@ static long do_sys_ftruncate(unsigned int fd, loff_t length, int small)
 		infocoll_write_to_buff(data + 8, length);
 		infocoll_send(INFOCOLL_TRUNCATE, data, NLMSG_DONE);
 	}
+
 out_putf:
 	fput(file);
 out:
@@ -1000,21 +1001,22 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 		fd = get_unused_fd_flags(flags);
 		if (fd >= 0) {
 			struct file *f = do_filp_open(dfd, tmp, &op, lookup);
+
 			if (IS_ERR(f)) {
 				put_unused_fd(fd);
 				fd = PTR_ERR(f);
-			} else {
+			} else {				
 				fsnotify_open(f);
-				fd_install(fd, f);
-			}
+				if (f && infocoll_data.fs == f->f_vfsmnt->mnt_root) {
+					ulong inode = f->f_dentry->d_inode->i_ino;
+					char data[40] = {0};
+					infocoll_write_to_buff(data, inode);
+					infocoll_write_to_buff(data + 8, mode);
+					infocoll_write_to_buff(data + 16, flags);
+					infocoll_send(INFOCOLL_OPEN, data, NLMSG_DONE);
+				}
 
-			if (f && infocoll_data.fs == f->f_vfsmnt->mnt_root) {
-				ulong inode = f->f_dentry->d_inode->i_ino;
-				char data[40] = {0};
-				infocoll_write_to_buff(data, inode);
-				infocoll_write_to_buff(data + 8, mode);
-				infocoll_write_to_buff(data + 16, flags);
-				infocoll_send(INFOCOLL_OPEN, data, NLMSG_DONE);
+				fd_install(fd, f);
 			}
 		}
 		putname(tmp);
@@ -1107,6 +1109,14 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
 	filp = fdt->fd[fd];
 	if (!filp)
 		goto out_unlock;
+
+	if (infocoll_data.fs == filp->f_vfsmnt->mnt_root) {
+		ulong inode = filp->f_dentry->d_inode->i_ino;
+		char data[40] = {0};
+		infocoll_write_to_buff(data, inode);
+		infocoll_send(INFOCOLL_CLOSE, data, NLMSG_DONE);
+	}
+
 	rcu_assign_pointer(fdt->fd[fd], NULL);
 	__clear_close_on_exec(fd, fdt);
 	__put_unused_fd(files, fd);
@@ -1119,13 +1129,6 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
 		     retval == -ERESTARTNOHAND ||
 		     retval == -ERESTART_RESTARTBLOCK))
 		retval = -EINTR;
-
-	if (infocoll_data.fs == filp->f_vfsmnt->mnt_root) {
-		ulong inode = filp->f_dentry->d_inode->i_ino;
-		char data[40] = {0};
-		infocoll_write_to_buff(data, inode);
-		infocoll_send(INFOCOLL_CLOSE, data, NLMSG_DONE);
-	}
 
 	return retval;
 
