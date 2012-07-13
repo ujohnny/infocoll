@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 #define NETLINK_INFOCOLL 31
-#define MAX_PAYLOAD 41 /* maximum payload size*/
+#define MAX_PAYLOAD 57 /* maximum payload size*/
 
 uint64_t extract_uint64(unsigned char *str)
 {

@@ -63,6 +63,7 @@ static int infocoll_send(char type, char *data, int status)
 	NETLINK_CB(skb_out).dst_group = 0;  /* unicast */
 
 	payload = NLMSG_DATA(nlh);
+	memset(payload, 0, size);
 	payload[0] = type;
 	infocoll_write_to_buff(payload + 1, time.tv_sec);
 	infocoll_write_to_buff(payload + 9, time.tv_nsec);
