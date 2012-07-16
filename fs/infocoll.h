@@ -75,8 +75,8 @@ static int infocoll_send(char type, char *data, int status)
 
 static void infocoll_sock_init_callback(struct sk_buff *skb)
 {
-	struct nlmsghdr *nlh = (struct nlmsghdr*) skb->data;
-	printk(KERN_INFO "[ INFOCOLL ] Netlink received msg payload: %s\n",(char*) nlmsg_data(nlh));
+	struct nlmsghdr *nlh = (struct nlmsghdr *) skb->data;
+	printk(KERN_INFO "[ INFOCOLL ] Netlink received msg payload: %s\n",(char *) nlmsg_data(nlh));
 	infocoll_data.pid = nlh->nlmsg_pid; /*pid of sending process */
 
 	infocoll_send(INFOCOLL_BEGIN, 0, NLMSG_DONE);
@@ -96,7 +96,6 @@ static void infocoll_init_socket(char *data)
 	const int nl_socket_id = 31;
 
 	if (!data) return;
-
 
 	pos = strstr(data, opt);
 	s = pos;

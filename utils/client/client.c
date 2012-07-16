@@ -6,7 +6,14 @@
 #include <stdint.h>
 
 #define NETLINK_INFOCOLL 31
-#define MAX_PAYLOAD 57 /* maximum payload size*/
+
+/*
+  1 bit - type
+  8 bits - time in seconds
+  8 bits - nanoseconds
+  40 bits - payload
+*/
+#define MAX_PAYLOAD 57 
 
 uint64_t extract_uint64(unsigned char *str)
 {
@@ -34,45 +41,46 @@ void process_data(struct nlmsghdr *nlh) {
 			"%llu\t" // f2
 			"%llu\t" // f3
 			"%llu\t" // f4
-			"%llu\t\n", // f5
-		   type, time_sec, time_nsec, f1, f2, f3, f4, f5);
+			"%llu\t\n" // f5
+		   , type, time_sec, time_nsec, f1, f2, f3, f4, f5);
 	memset(payload, 0, MAX_PAYLOAD);
 }
 
 int main()
 {
+	struct sockaddr_nl src_addr;
+	struct sockaddr_nl dst_addr;
+	struct nlmsghdr *nlh; 
+	struct iovec iov;
+	struct msghdr msg;
+	
 	int sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_INFOCOLL);
 	if(sock_fd < 0) {
 		printf("Device not mounted\n");
 		return -1;
 	}
 
-	struct sockaddr_nl src_addr;
+
 	memset(&src_addr, 0, sizeof(src_addr));
 	src_addr.nl_family = AF_NETLINK;
 	src_addr.nl_pid = getpid(); // self pid 
 
-	bind(sock_fd, (struct sockaddr*) &src_addr, sizeof(src_addr));
+	bind(sock_fd, (struct sockaddr *) &src_addr, sizeof(src_addr));
 
-	struct sockaddr_nl dst_addr;
 	memset(&dst_addr, 0, sizeof(dst_addr));
 	memset(&dst_addr, 0, sizeof(dst_addr));
 	dst_addr.nl_family = AF_NETLINK;
 	dst_addr.nl_pid = 0; // For Linux Kernel
 	dst_addr.nl_groups = 0; // unicast 
 	
-
-	struct nlmsghdr *nlh = (struct nlmsghdr *) malloc(NLMSG_SPACE(MAX_PAYLOAD));
+	nlh = (struct nlmsghdr *) malloc(NLMSG_SPACE(MAX_PAYLOAD));
 	memset(nlh, 0, NLMSG_SPACE(MAX_PAYLOAD));
 	nlh->nlmsg_len = NLMSG_SPACE(MAX_PAYLOAD);
 	nlh->nlmsg_pid = getpid();
 	nlh->nlmsg_flags = 0;
 
-	struct iovec iov;
 	iov.iov_base = (void *) nlh;
 	iov.iov_len = nlh->nlmsg_len;
-
-	struct msghdr msg;
 		
 	msg.msg_name = (void *) &dst_addr;
 	msg.msg_namelen = sizeof(dst_addr);
@@ -81,7 +89,13 @@ int main()
 
 	sendmsg(sock_fd, &msg, 0); // send msg to kernel with our pid 
 
-	printf("type\tlength\toffset\tinode\ttime\n"); //header for output file
+	printf("type\t"
+		   "time\t"
+		   "info_1\t"
+		   "info_2\t"
+		   "info_3\t"
+		   "info_4\t"
+		   "info_5\n"); //header for output file
 
 	/* Reading messages from kernel */
 
