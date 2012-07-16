@@ -250,15 +250,15 @@ SYSCALL_DEFINE3(lseek, unsigned int, fd, off_t, offset, unsigned int, origin)
 	}
 	fput_light(file, fput_needed);
 
-	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
-		ulong inode = file->f_dentry->d_inode->i_ino;
-		char data[40] = {0};
-		infocoll_write_to_buff(data, inode);	
-		infocoll_write_to_buff(data + 8, offset);	
-		infocoll_write_to_buff(data + 16, origin);	
-	
-		infocoll_send(INFOCOLL_LSEEK, data, NLMSG_DONE);
-	}
+//	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
+//		ulong inode = file->f_dentry->d_inode->i_ino;
+//		char data[40] = {0};
+//		infocoll_write_to_buff(data, inode);	
+//		infocoll_write_to_buff(data + 8, offset);	
+//		infocoll_write_to_buff(data + 16, origin);	
+//	
+//		infocoll_send(INFOCOLL_LSEEK, data, NLMSG_DONE);
+//	}
 bad:
 	return retval;
 }
@@ -292,14 +292,14 @@ SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned long, offset_high,
 			retval = 0;
 	}
 
-	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
-		ulong inode = file->f_dentry->d_inode->i_ino;
-		char data[40] = {0};
-		infocoll_write_to_buff(data, inode);
-		infocoll_write_to_buff(data + 8, ((loff_t) offset_high << 32) | offset_low);
-		infocoll_write_to_buff(data + 16, origin);
-		infocoll_send(INFOCOLL_LSEEK, data, NLMSG_DONE);
-	}
+//	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
+//		ulong inode = file->f_dentry->d_inode->i_ino;
+//		char data[40] = {0};
+//		infocoll_write_to_buff(data, inode);
+//		infocoll_write_to_buff(data + 8, ((loff_t) offset_high << 32) | offset_low);
+//		infocoll_write_to_buff(data + 16, origin);
+//		infocoll_send(INFOCOLL_LSEEK, data, NLMSG_DONE);
+//	}
 out_putf:
 	fput_light(file, fput_needed);
 bad:
@@ -386,14 +386,17 @@ EXPORT_SYMBOL(do_sync_read);
 ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 {
 	ssize_t ret;
-	char data[40] = {0};
 
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
+		char data[40] = {0};
 		loff_t offset = pos ? *pos : 0;
 		ulong inode = file->f_dentry->d_inode->i_ino;
+		ulong size = file->f_dentry->d_inode->i_size;
+
 		infocoll_write_to_buff(data, inode);	
 		infocoll_write_to_buff(data + 8, count);	
 		infocoll_write_to_buff(data + 16, offset);	
+		infocoll_write_to_buff(data + 24, size);
 	
 		infocoll_send(INFOCOLL_READ, data, NLMSG_DONE);
 	}
@@ -454,15 +457,17 @@ EXPORT_SYMBOL(do_sync_write);
 ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos)
 {
 	ssize_t ret;
-	char data[40] = {0};
 
 	if (infocoll_data.fs == file->f_vfsmnt->mnt_root) {
+		char data[40] = {0};
 		loff_t offset = pos ? *pos : 0;
 		ulong inode = file->f_dentry->d_inode->i_ino;
+		ulong size = file->f_dentry->d_inode->i_size;
 
 		infocoll_write_to_buff(data, inode);	
 		infocoll_write_to_buff(data + 8, count);	
 		infocoll_write_to_buff(data + 16, offset);	
+		infocoll_write_to_buff(data + 24, size);	
 	
 		infocoll_send(INFOCOLL_WRITE, data, NLMSG_DONE);
 	}
