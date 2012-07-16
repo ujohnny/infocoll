@@ -13,7 +13,7 @@
   8 bits - nanoseconds
   40 bits - payload
 */
-#define MAX_PAYLOAD 57 
+#define PAYLOAD_SIZE 57 
 
 uint64_t extract_uint64(unsigned char *str)
 {
@@ -25,7 +25,7 @@ uint64_t extract_uint64(unsigned char *str)
 	return v;
 }
 
-void process_data(struct nlmsghdr *nlh) {
+void process_data(struct nlmsghdr *nlh, FILE *fp) {
 	unsigned char *payload = NLMSG_DATA(nlh);
 	unsigned char type = payload[0];
 	uint64_t time_sec = extract_uint64(payload+1),
@@ -43,19 +43,32 @@ void process_data(struct nlmsghdr *nlh) {
 			"%llu\t" // f4
 			"%llu\t\n" // f5
 		   , type, time_sec, time_nsec, f1, f2, f3, f4, f5);
-	memset(payload, 0, MAX_PAYLOAD);
+	fwrite(payload, 1, PAYLOAD_SIZE, fp);
+	memset(payload, 0, PAYLOAD_SIZE);
 }
 
-int main()
+int main(int argc, char **argv)
 {
+
 	struct sockaddr_nl src_addr;
 	struct sockaddr_nl dst_addr;
 	struct nlmsghdr *nlh; 
 	struct iovec iov;
 	struct msghdr msg;
-	
-	int sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_INFOCOLL);
-	if(sock_fd < 0) {
+
+	FILE *fp;
+	int sock_fd;
+
+	if (argc == 2 && strcmp(argv[1], "-h") == 0) {
+		printf("./client <file>\n"
+				"\tYou can specify file to write binary dump\n");
+		return 0;
+	}
+
+	fp = argc == 2 ? fopen(argv[1], "wb") : NULL;
+
+	sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_INFOCOLL);
+	if (sock_fd < 0) {
 		printf("Device not mounted\n");
 		return -1;
 	}
@@ -73,9 +86,9 @@ int main()
 	dst_addr.nl_pid = 0; // For Linux Kernel
 	dst_addr.nl_groups = 0; // unicast 
 	
-	nlh = (struct nlmsghdr *) malloc(NLMSG_SPACE(MAX_PAYLOAD));
-	memset(nlh, 0, NLMSG_SPACE(MAX_PAYLOAD));
-	nlh->nlmsg_len = NLMSG_SPACE(MAX_PAYLOAD);
+	nlh = (struct nlmsghdr *) malloc(NLMSG_SPACE(PAYLOAD_SIZE));
+	memset(nlh, 0, NLMSG_SPACE(PAYLOAD_SIZE));
+	nlh->nlmsg_len = NLMSG_SPACE(PAYLOAD_SIZE);
 	nlh->nlmsg_pid = getpid();
 	nlh->nlmsg_flags = 0;
 
@@ -101,8 +114,14 @@ int main()
 
 	do {
 		recvmsg(sock_fd, &msg, 0);
-		process_data(nlh);
+		process_data(nlh, fp);
 	} while (!(nlh->nlmsg_type == NLMSG_ERROR));
 	
 	close(sock_fd);
+
+	if (fp) {
+		fclose(fp);
+	}
+
+	return 0;
 }
