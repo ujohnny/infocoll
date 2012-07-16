@@ -15,6 +15,8 @@
 */
 #define PAYLOAD_SIZE 57 
 
+FILE *fp;
+
 uint64_t extract_uint64(unsigned char *str)
 {
 	uint64_t v = 0;
@@ -25,7 +27,7 @@ uint64_t extract_uint64(unsigned char *str)
 	return v;
 }
 
-void process_data(struct nlmsghdr *nlh, FILE *fp) {
+void process_data(struct nlmsghdr *nlh) {
 	unsigned char *payload = NLMSG_DATA(nlh);
 	unsigned char type = payload[0];
 	uint64_t time_sec = extract_uint64(payload+1),
@@ -59,7 +61,6 @@ int main(int argc, char **argv)
 	struct iovec iov;
 	struct msghdr msg;
 
-	FILE *fp;
 	int sock_fd;
 
 	if (argc == 2 && strcmp(argv[1], "-h") == 0) {
@@ -117,7 +118,7 @@ int main(int argc, char **argv)
 
 	do {
 		recvmsg(sock_fd, &msg, 0);
-		process_data(nlh, fp);
+		process_data(nlh);
 	} while (!(nlh->nlmsg_type == NLMSG_ERROR));
 	
 	close(sock_fd);
