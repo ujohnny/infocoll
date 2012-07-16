@@ -43,7 +43,10 @@ void process_data(struct nlmsghdr *nlh, FILE *fp) {
 			"%llu\t" // f4
 			"%llu\t\n" // f5
 		   , type, time_sec, time_nsec, f1, f2, f3, f4, f5);
-	fwrite(payload, 1, PAYLOAD_SIZE, fp);
+	if (fp) {
+		fwrite(payload, 1, PAYLOAD_SIZE, fp);
+		fflush(fp);
+	}
 	memset(payload, 0, PAYLOAD_SIZE);
 }
 
