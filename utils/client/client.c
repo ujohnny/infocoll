@@ -95,7 +95,7 @@ int write_data_to_file(char *payload, FILE *fp, int file_mode) {
 	fflush(fp);
 }
 
-int export_data_and_write(struct nlmsghdr *nlh, FILE *fp, int file_mode) {
+int extract_data_and_write(struct nlmsghdr *nlh, FILE *fp, int file_mode) {
 
 	unsigned char *payload = NLMSG_DATA(nlh);
 	write_data_to_file(payload, fp, file_mode);
@@ -164,7 +164,7 @@ int start_logging(FILE* fp, int file_mode) {
 
 	do {
 		recvmsg(sock_fd, &msg, 0);
-		export_data_and_write(nlh, fp, file_mode);
+		extract_data_and_write(nlh, fp, file_mode);
 	} while (!(nlh->nlmsg_type == NLMSG_ERROR));
 	
 	close(sock_fd);
