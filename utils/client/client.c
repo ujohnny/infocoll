@@ -7,24 +7,31 @@
 
 #define NETLINK_INFOCOLL 31
 
-/*
-  1 bit - type
-  8 bits - time in seconds
-  8 bits - nanoseconds
-  40 bits - payload
-*/
+/**
+ * 1 bit - type
+ * 8 bits - time in seconds
+ * 8 bits - nanoseconds
+ * 40 bits - payload
+ */
 #define PAYLOAD_SIZE 57 
+
+/**
+ * define file formats
+ */
 #define BINARY 1
 #define TEXT 2
 
-
+// moved here because of strange troubles with stack if they're placed in function
 struct sockaddr_nl src_addr;
 struct sockaddr_nl dst_addr;
 struct nlmsghdr *nlh; 
 struct iovec iov;
 struct msghdr msg;
 
-
+/**
+ * extract_uint64 - extract uint64_t from 8-bit char sequence
+ * @str: input sequence
+ */
 uint64_t extract_uint64(unsigned char *str)
 {
 	uint64_t v = 0;
@@ -35,6 +42,11 @@ uint64_t extract_uint64(unsigned char *str)
 	return v;
 }
 
+/**
+ * convert_data - convert infocoll messages to string
+ * @payload: input infocoll message
+ * Wrapper for extract_uint64
+ */
 int convert_data(char *payload, uint64_t *time_sec, uint64_t *time_nsec, uint64_t *f1
 				 , uint64_t *f2, uint64_t *f3, uint64_t *f4, uint64_t *f5) 
 {
@@ -48,6 +60,11 @@ int convert_data(char *payload, uint64_t *time_sec, uint64_t *time_nsec, uint64_
 	return 0;
 }
 
+/**
+ * convert_file - converts file with binary data to text
+ * @f_in: input binary file
+ * @f_out: output text file
+ */
 int convert_file(FILE *f_in, FILE *f_out) {
 	char buffer[PAYLOAD_SIZE];
 
@@ -56,8 +73,12 @@ int convert_file(FILE *f_in, FILE *f_out) {
 	while(fread(buffer, 1, PAYLOAD_SIZE, f_in)) {
 		write_data_to_file(buffer, f_out, TEXT);
 	}
+	return 0;
 }
 
+/**
+ * print_header - prints header into file for next processiong with R
+ */
 int print_header(FILE *file) {
 	fprintf(file, "type\t"
 			"time\t"
@@ -69,9 +90,12 @@ int print_header(FILE *file) {
 
 }
 
-int write_data_to_file(char *payload, FILE *fp, int file_mode) {
-
-	if (file_mode == TEXT) { 
+/**
+ * write_data_to_file - writes data in file with certain format
+ * @payload: infocoll message
+ */
+int write_data_to_file(char *payload, FILE *fp, int file_format) {
+	if (file_format == TEXT) { 
 		unsigned char type = payload[0];
 
 		uint64_t time_sec, time_nsec
@@ -88,22 +112,29 @@ int write_data_to_file(char *payload, FILE *fp, int file_mode) {
 			   , type, time_sec, time_nsec, f1, f2, f3, f4, f5);
 	}
 	
-	if (file_mode == BINARY) {
+	if (file_format == BINARY) {
 		fwrite(payload, 1, PAYLOAD_SIZE, fp);
 	}
 
 	fflush(fp);
 }
 
-int extract_data_and_write(struct nlmsghdr *nlh, FILE *fp, int file_mode) {
+/**
+ * extract_data_and_write - wrapper for write_data_to_file
+ * @nlh: pointer to header of netlink message
+ */
+int extract_data_and_write(struct nlmsghdr *nlh, FILE *fp, int file_format) {
 
 	unsigned char *payload = NLMSG_DATA(nlh);
-	write_data_to_file(payload, fp, file_mode);
+	write_data_to_file(payload, fp, file_format);
 
 	memset(payload, 0, PAYLOAD_SIZE);
 	return 0;
 }
 
+/**
+ * print_help - prints help if client runned with -h flag
+ */
 int print_help() {
 	
 	printf("./client [FLAG] [FILE(s)]\n");
@@ -118,7 +149,13 @@ int print_help() {
 
 }
 
-int start_logging(FILE* fp, int file_mode) {
+/**
+ * start_logging - interaction with kernel
+ * @fp: output file
+ * @file_format: binary or text format
+ * Connects to kernel, and receiving messages until NLMSG_ERROR received
+ */
+int start_logging(FILE* fp, int file_format) {
 
 	int sock_fd;
 
@@ -156,7 +193,7 @@ int start_logging(FILE* fp, int file_mode) {
 
 	sendmsg(sock_fd, &msg, 0); // send msg to kernel with our pid 
 
-	if (file_mode == TEXT) {
+	if (file_format == TEXT) {
 		print_header(fp);
 	}
 
@@ -164,7 +201,7 @@ int start_logging(FILE* fp, int file_mode) {
 
 	do {
 		recvmsg(sock_fd, &msg, 0);
-		extract_data_and_write(nlh, fp, file_mode);
+		extract_data_and_write(nlh, fp, file_format);
 	} while (!(nlh->nlmsg_type == NLMSG_ERROR));
 	
 	close(sock_fd);
@@ -172,7 +209,6 @@ int start_logging(FILE* fp, int file_mode) {
 
 int main(int argc, char **argv)
 {
-
 	if (argc == 2 && strcmp(argv[1], "-h") == 0) {
 		print_help();
 		return 0;
@@ -180,13 +216,13 @@ int main(int argc, char **argv)
 
 	if (argc == 3) {
 		FILE *fp;
-		int file_mode;
+		int file_format;
 		if (strcmp(argv[1], "-b") == 0) {
 			fp = fopen(argv[2], "wb");
-			file_mode = BINARY;
+			file_format = BINARY;
 		} else if (strcmp(argv[1], "-t") == 0) {
 			fp = fopen(argv[2], "w");
-			file_mode = TEXT;
+			file_format = TEXT;
 		} else {
 			printf("incorrect option, use -h for help\n");
 			return -1; 
@@ -197,7 +233,7 @@ int main(int argc, char **argv)
 			return -2;
 		}
 		
-		start_logging(fp, file_mode);
+		start_logging(fp, file_format);
 		close(fp);
 		return 0;
 	} 
