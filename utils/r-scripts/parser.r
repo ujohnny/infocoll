@@ -9,7 +9,8 @@ fd <- file(description=file, open="rb", raw=TRUE)
 rawToInt64 <- function(v) Reduce((function(a, x) a * 256L + x ), v, int64(1))
 int64ToDouble <- function (v) mapply(function (a) as.double(a[[1]]) * 2^32 + ((as.double(a[[2]]) + 2^32) %% 2^32), v)
 
-table <- merge(data.frame(), data.frame(type=0, time=0, f1=0, f2=0, f3=0, f4=0, f5=0))
+# table <- merge(data.frame(), data.frame(type=0, time=0, f1=0, f2=0, f3=0, f4=0, f5=0))
+table <- NULL
 
 while (length(buffer <- readBin(fd, "raw", 57))) {
 	buffer <- as.integer(buffer)
@@ -40,7 +41,9 @@ while (length(buffer <- readBin(fd, "raw", 57))) {
 	f5 <- rawToInt64(head(buffer, 8))
 	buffer <- tail(buffer, -8)
 
-	table <- merge(table, data.frame(type=type, time=time, f1=f1, f2=f2, f3=f3, f4=f4, f5=f5), all=TRUE)
+	rbind(table, data.frame(type=type, time=time, f1=f1, f2=f2, f3=f3, f4=f4, f5=f5)) -> table
+#	table <- merge(table, data.frame(type=type, time=time, f1=f1, f2=f2, f3=f3, f4=f4, f5=f5), all=TRUE)
+	print(c(time))
 }
 
 print(table)
