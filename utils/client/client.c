@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <signal.h>
 
 #define NETLINK_INFOCOLL 31
 
@@ -27,6 +28,18 @@ struct sockaddr_nl dst_addr;
 struct nlmsghdr *nlh; 
 struct iovec iov;
 struct msghdr msg;
+
+FILE *fp, *f_in, *f_out;
+
+void sigint_handler(int signum) {
+	if (fp)
+		fclose(fp);
+	if (f_in)
+		fclose(f_in);
+	if (f_out)
+		fclose(f_out);
+	exit(EXIT_SUCCESS);
+}
 
 /**
  * extract_uint64 - extract uint64_t from 8-bit char sequence
@@ -209,13 +222,13 @@ int start_logging(FILE* fp, int file_format) {
 
 int main(int argc, char **argv)
 {
+	signal(SIGINT, sigint_handler);
 	if (argc == 2 && strcmp(argv[1], "-h") == 0) {
 		print_help();
 		return 0;
 	}
 
 	if (argc == 3) {
-		FILE *fp;
 		int file_format;
 		if (strcmp(argv[1], "-b") == 0) {
 			fp = fopen(argv[2], "wb");
@@ -239,8 +252,8 @@ int main(int argc, char **argv)
 	} 
 
 	if (argc == 4 && strcmp(argv[1], "-c") == 0) {
-		FILE *f_in = fopen(argv[2], "rb");
-		FILE *f_out = fopen(argv[3], "w");
+		f_in = fopen(argv[2], "rb");
+		f_out = fopen(argv[3], "w");
 		
 		if (!(f_in && f_out)) {
 			printf("Error opening file\n");
