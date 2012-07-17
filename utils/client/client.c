@@ -14,8 +14,16 @@
   40 bits - payload
 */
 #define PAYLOAD_SIZE 57 
+#define BINARY 1
+#define TEXT 2
 
-FILE *fp;
+
+struct sockaddr_nl src_addr;
+struct sockaddr_nl dst_addr;
+struct nlmsghdr *nlh; 
+struct iovec iov;
+struct msghdr msg;
+
 
 uint64_t extract_uint64(unsigned char *str)
 {
@@ -27,56 +35,98 @@ uint64_t extract_uint64(unsigned char *str)
 	return v;
 }
 
-void process_data(struct nlmsghdr *nlh) {
-	unsigned char *payload = NLMSG_DATA(nlh);
-	unsigned char type = payload[0];
-	uint64_t time_sec = extract_uint64(payload+1),
-		time_nsec = extract_uint64(payload+9),
-		f1 = extract_uint64(payload+17),
-		f2 = extract_uint64(payload+25),
-		f3 = extract_uint64(payload+33),
-		f4 = extract_uint64(payload+41),
-		f5 = extract_uint64(payload+49);
-	printf("%d\t" // type
-			"%llu.%llu\t" // time
-			"%llu\t" // f1
-			"%llu\t" // f2
-			"%llu\t" // f3
-			"%llu\t" // f4
-			"%llu\t\n" // f5
-		   , type, time_sec, time_nsec, f1, f2, f3, f4, f5);
-	if (fp) {
-		fwrite(payload, 1, PAYLOAD_SIZE, fp);
-		fflush(fp);
-	}
-	memset(payload, 0, PAYLOAD_SIZE);
+int convert_data(char *payload, uint64_t *time_sec, uint64_t *time_nsec, uint64_t *f1
+				 , uint64_t *f2, uint64_t *f3, uint64_t *f4, uint64_t *f5) 
+{
+	*time_sec = extract_uint64(payload+1);
+	*time_nsec = extract_uint64(payload+9);
+	*f1 = extract_uint64(payload+17);
+	*f2 = extract_uint64(payload+25);
+	*f3 = extract_uint64(payload+33);
+	*f4 = extract_uint64(payload+41);
+	*f5 = extract_uint64(payload+49);
+	return 0;
 }
 
-int main(int argc, char **argv)
-{
+int convert_file(FILE *f_in, FILE *f_out) {
+	char buffer[PAYLOAD_SIZE];
 
-	struct sockaddr_nl src_addr;
-	struct sockaddr_nl dst_addr;
-	struct nlmsghdr *nlh; 
-	struct iovec iov;
-	struct msghdr msg;
+	print_header(f_out);
 
-	int sock_fd;
+	while(fread(buffer, 1, PAYLOAD_SIZE, f_in)) {
+		write_data_to_file(buffer, f_out, TEXT);
+	}
+}
 
-	if (argc == 2 && strcmp(argv[1], "-h") == 0) {
-		printf("./client <file>\n"
-				"\tYou can specify file to write binary dump\n");
-		return 0;
+int print_header(FILE *file) {
+	fprintf(file, "type\t"
+			"time\t"
+			"info_1\t"
+			"info_2\t"
+			"info_3\t"
+			"info_4\t"
+			"info_5\n");
+
+}
+
+int write_data_to_file(char *payload, FILE *fp, int file_mode) {
+
+	if (file_mode == TEXT) { 
+		unsigned char type = payload[0];
+
+		uint64_t time_sec, time_nsec
+			, f1, f2, f3, f4, f5;
+		convert_data(payload, &time_sec, &time_nsec, &f1, &f2, &f3, &f4, &f5);
+
+		fprintf(fp, "%d\t" // type
+			   "%llu.%09llu\t" // time
+			   "%llu\t" // f1
+			   "%llu\t" // f2
+			   "%llu\t" // f3
+			   "%llu\t" // f4
+			   "%llu\t\n" // f5
+			   , type, time_sec, time_nsec, f1, f2, f3, f4, f5);
+	}
+	
+	if (file_mode == BINARY) {
+		fwrite(payload, 1, PAYLOAD_SIZE, fp);
 	}
 
-	fp = argc == 2 ? fopen(argv[1], "wb") : NULL;
+	fflush(fp);
+}
+
+int export_data_and_write(struct nlmsghdr *nlh, FILE *fp, int file_mode) {
+
+	unsigned char *payload = NLMSG_DATA(nlh);
+	write_data_to_file(payload, fp, file_mode);
+
+	memset(payload, 0, PAYLOAD_SIZE);
+	return 0;
+}
+
+int print_help() {
+	
+	printf("./client [FLAG] [FILE(s)]\n");
+	printf("flags:\n");
+	printf("\t-c [INPUT_FILE] [OUTPUT_FILE]\n"
+		   "\t\t convert from binary data to text\n");
+	printf("\t-b [OUTPUT_FILE]\n"
+		   "\t\tprint output data in binary format\n");
+	printf("\t-t [OUTPUT_FILE]\n"
+		   "\t\tprint output data in text format\n");
+	return 0;
+
+}
+
+int start_logging(FILE* fp, int file_mode) {
+
+	int sock_fd;
 
 	sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_INFOCOLL);
 	if (sock_fd < 0) {
 		printf("Device not mounted\n");
 		return -1;
 	}
-
 
 	memset(&src_addr, 0, sizeof(src_addr));
 	src_addr.nl_family = AF_NETLINK;
@@ -106,26 +156,68 @@ int main(int argc, char **argv)
 
 	sendmsg(sock_fd, &msg, 0); // send msg to kernel with our pid 
 
-	printf("type\t"
-		   "time\t"
-		   "info_1\t"
-		   "info_2\t"
-		   "info_3\t"
-		   "info_4\t"
-		   "info_5\n"); //header for output file
+	if (file_mode == TEXT) {
+		print_header(fp);
+	}
 
 	/* Reading messages from kernel */
 
 	do {
 		recvmsg(sock_fd, &msg, 0);
-		process_data(nlh);
+		export_data_and_write(nlh, fp, file_mode);
 	} while (!(nlh->nlmsg_type == NLMSG_ERROR));
 	
 	close(sock_fd);
+}
 
-	if (fp) {
-		fclose(fp);
+int main(int argc, char **argv)
+{
+
+	if (argc == 2 && strcmp(argv[1], "-h") == 0) {
+		print_help();
+		return 0;
 	}
 
-	return 0;
+	if (argc == 3) {
+		FILE *fp;
+		int file_mode;
+		if (strcmp(argv[1], "-b") == 0) {
+			fp = fopen(argv[2], "wb");
+			file_mode = BINARY;
+		} else if (strcmp(argv[1], "-t") == 0) {
+			fp = fopen(argv[2], "w");
+			file_mode = TEXT;
+		} else {
+			printf("incorrect option, use -h for help\n");
+			return -1; 
+		}
+		
+		if (!fp) {
+			printf("Error opening file\n");
+			return -2;
+		}
+		
+		start_logging(fp, file_mode);
+		close(fp);
+		return 0;
+	} 
+
+	if (argc == 4 && strcmp(argv[1], "-c") == 0) {
+		FILE *f_in = fopen(argv[2], "rb");
+		FILE *f_out = fopen(argv[3], "w");
+		
+		if (!(f_in && f_out)) {
+			printf("Error opening file\n");
+			return -3;
+		}
+
+		convert_file(f_in, f_out);
+		
+		fclose(f_in);
+		fclose(f_out);
+		return 0;
+	} 
+	
+	printf("incorrect option, use -h for help\n");
+	return -1;
 }
