@@ -29,15 +29,12 @@ struct nlmsghdr *nlh;
 struct iovec iov;
 struct msghdr msg;
 
-FILE *fp, *f_in, *f_out;
+FILE *fp = 0, *f_in = 0, *f_out = 0;
 
 void sigint_handler(int signum) {
-	if (fp)
-		fclose(fp);
-	if (f_in)
-		fclose(f_in);
-	if (f_out)
-		fclose(f_out);
+	if (fp) fclose(fp);
+	if (f_in) fclose(f_in);
+	if (f_out) fclose(f_out);
 	exit(EXIT_SUCCESS);
 }
 
@@ -83,7 +80,7 @@ int convert_file(FILE *f_in, FILE *f_out) {
 
 	print_header(f_out);
 
-	while(fread(buffer, 1, PAYLOAD_SIZE, f_in)) {
+	while (fread(buffer, 1, PAYLOAD_SIZE, f_in)) {
 		write_data_to_file(buffer, f_out, TEXT);
 	}
 	return 0;
@@ -150,14 +147,16 @@ int extract_data_and_write(struct nlmsghdr *nlh, FILE *fp, int file_format) {
  */
 int print_help() {
 	
-	printf("./client [FLAG] [FILE(s)]\n");
-	printf("flags:\n");
-	printf("\t-c [INPUT_FILE] [OUTPUT_FILE]\n"
-		   "\t\t convert from binary data to text\n");
-	printf("\t-b [OUTPUT_FILE]\n"
-		   "\t\tprint output data in binary format\n");
-	printf("\t-t [OUTPUT_FILE]\n"
-		   "\t\tprint output data in text format\n");
+	printf("./client OPTIONS\n");
+	printf("Flags:\n");
+	printf("\t-c INPUT_FILE OUTPUT_FILE\n"
+		   "\t\tconvert from binary data to text.\n");
+	printf("\t-b OUTPUT_FILE\n"
+		   "\t\tprint output data in binary format.\n");
+	printf("\t-t OUTPUT_FILE\n"
+		   "\t\tprint output data in text format.\n");
+	printf("\t-h\n"
+		   "\t\tprint this message and exit.\n");
 	return 0;
 
 }
@@ -223,7 +222,7 @@ int start_logging(FILE* fp, int file_format) {
 int main(int argc, char **argv)
 {
 	signal(SIGINT, sigint_handler);
-	if (argc == 2 && strcmp(argv[1], "-h") == 0) {
+	if (argc == 1 || argc == 2 && strcmp(argv[1], "-h") == 0) {
 		print_help();
 		return 0;
 	}
@@ -237,12 +236,13 @@ int main(int argc, char **argv)
 			fp = fopen(argv[2], "w");
 			file_format = TEXT;
 		} else {
-			printf("incorrect option, use -h for help\n");
+			printf("Incorrect option.\n");
+			print_help();
 			return -1; 
 		}
 		
 		if (!fp) {
-			printf("Error opening file\n");
+			printf("Error opening file.\n");
 			return -2;
 		}
 		
@@ -267,6 +267,7 @@ int main(int argc, char **argv)
 		return 0;
 	} 
 	
-	printf("incorrect option, use -h for help\n");
+	printf("Incorrect option.\n");
+	print_help();
 	return -1;
 }
