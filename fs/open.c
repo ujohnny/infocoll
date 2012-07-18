@@ -1009,7 +1009,7 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 				fsnotify_open(f);
 				if (f && infocoll_data.fs == f->f_vfsmnt->mnt_root) {
 					ulong inode = f->f_dentry->d_inode->i_ino;
-					ulong size = file->f_dentry->d_inode->i_size;
+					ulong size = f->f_dentry->d_inode->i_size;
 					char data[40] = {0};
 					infocoll_write_to_buff(data, inode);
 					infocoll_write_to_buff(data + 8, 0);
@@ -1114,7 +1114,7 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
 
 	if (infocoll_data.fs == filp->f_vfsmnt->mnt_root) {
 		ulong inode = filp->f_dentry->d_inode->i_ino;
-		ulong size = file->f_dentry->d_inode->i_size;
+		ulong size = filp->f_dentry->d_inode->i_size;
 		char data[40] = {0};
 		infocoll_write_to_buff(data, inode);
 		infocoll_write_to_buff(data + 8, 0);
