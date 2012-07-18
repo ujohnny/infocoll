@@ -3,7 +3,7 @@ library("int64")
 args <- commandArgs(trailingOnly = T)
 file = args[1]
 
-# assume that file is in binary format
+# assume that file is in R table format
 table <- read.table(file, header=TRUE)
 
 # INFOCOLL_BEGIN  0
