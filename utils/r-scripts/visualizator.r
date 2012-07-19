@@ -41,10 +41,11 @@ lty <- c(0, 0, 1,
 svg(paste(basename(file), paste(axisX, axisY, sep="-"), "svg",sep="."))
 layout(matrix(c(1,2), nrow = 1), widths = c(1, 0.3))
 plot(as.list(readwrite[axisX])[[1]], as.list(readwrite[axisY])[[1]],
-	pch=types[readwrite$type + 1],
-	col=colors[readwrite$info_1 %% length(colors) + 1],
-	xlim=c(min(readwrite$time), max(readwrite$time)))
-if (args[2] == 2) {
+     pch=types[readwrite$type + 1],
+     col=colors[readwrite$info_1 %% length(colors) + 1],
+     xlim=c(min(readwrite$time), max(readwrite$time)),
+     xlab = axisX, ylab = axisY)
+if (args[2] == "time") {
   abline(v=openclose$time, col=colors[openclose$info_1 %% length(colors) + 1], lty=lty[openclose$type + 1], lwd=2)
 }
 
