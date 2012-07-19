@@ -92,11 +92,11 @@ int convert_file(FILE *f_in, FILE *f_out) {
 int print_header(FILE *file) {
 	fprintf(file, "type\t"
 			"time\t"
-			"info_1\t"
-			"info_2\t"
-			"info_3\t"
-			"info_4\t"
-			"info_5\n");
+			"inode\t"
+			"count\t"
+			"offset\t"
+			"file_size\t"
+			"unused\n");
 
 }
 
