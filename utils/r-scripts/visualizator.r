@@ -53,7 +53,7 @@ plot(xargs, yargs,
      col=colors[readwrite$inode %% length(colors) + 1],
      xlim=c(minX, maxX),
      xlab = axisX, ylab = axisY)
-if (fileActionLines) {
+if (fileActionLines && args[2] == "time") {
   abline(v=openclose$time, col=colors[openclose$inode %% length(colors) + 1], lty=lty[openclose$type + 1], lwd=2)
 }
 
