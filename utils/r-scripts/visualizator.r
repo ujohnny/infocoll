@@ -2,8 +2,8 @@ library("int64")
 
 args <- commandArgs(trailingOnly = T)
 file = args[1]
-axisX = as.integer(args[2])
-axisY = as.integer(args[3])
+axisX = args[2]
+axisY = args[3]
 
 # assume that file is in R table format
 table <- read.table(file, header=TRUE)
@@ -38,7 +38,7 @@ lty <- c(0, 0, 1,
 		0, 0, 0,
 		0, 0, 2)
 
-svg(paste(basename(file), paste(names(table)[axisX], names(table)[axisY], sep="-"), "svg",sep="."))
+svg(paste(basename(file), paste(axisX, axisY, sep="-"), "svg",sep="."))
 layout(matrix(c(1,2), nrow = 1), widths = c(1, 0.3))
 plot(as.list(readwrite[axisX])[[1]], as.list(readwrite[axisY])[[1]],
 	pch=types[readwrite$type + 1],
