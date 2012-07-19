@@ -4,6 +4,7 @@ args <- commandArgs(trailingOnly = T)
 file = args[1]
 axisX = args[2]
 axisY = args[3]
+fileActionLines = as.logical(args[4])
 
 # assume that file is in R table format
 table <- read.table(file, header=TRUE)
@@ -26,17 +27,17 @@ table <- read.table(file, header=TRUE)
 
 openclose <- subset(table, type == 2 | type == 11)
 readwrite <- subset(table, type == 3 | type == 4)
-inodes <- unique(table$inode)
+inodes <- unique(subset(table, type != 0)$inode)
 
 colors <- c('green', 'blue', 'red', 'orange', 'black', 'purple', 'grey')
 types <- c(0, 0, 0,
-			1, 4, 0,
-			0, 0, 0,
-			0, 0, 0)
+           1, 4, 0,
+           0, 0, 0,
+           0, 0, 0)
 lty <- c(0, 0, 1,
-		0, 0, 0,
-		0, 0, 0,
-		0, 0, 2)
+         0, 0, 0,
+         0, 0, 0,
+         0, 0, 2)
 
 svg(paste(basename(file), paste(axisX, axisY, sep="-"), "svg",sep="."))
 layout(matrix(c(1,2), nrow = 1), widths = c(1, 0.3))
@@ -44,12 +45,15 @@ layout(matrix(c(1,2), nrow = 1), widths = c(1, 0.3))
 xargs <- as.list(readwrite[axisX])[[1]]
 yargs <- as.list(readwrite[axisY])[[1]]
 
+minX <- min(as.list(table[axisX])[[1]])
+maxX <- max(as.list(table[axisX])[[1]])
+
 plot(xargs, yargs,
      pch=types[readwrite$type + 1],
      col=colors[readwrite$inode %% length(colors) + 1],
-     xlim=c(min(xargs), max(xargs)),
+     xlim=c(minX, maxX),
      xlab = axisX, ylab = axisY)
-if (args[2] == "time") {
+if (fileActionLines) {
   abline(v=openclose$time, col=colors[openclose$inode %% length(colors) + 1], lty=lty[openclose$type + 1], lwd=2)
 }
 
